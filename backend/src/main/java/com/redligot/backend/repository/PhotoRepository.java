@@ -1,5 +1,6 @@
-package com.redligot.backend;
+package com.redligot.backend.repository;
 
+import com.redligot.backend.model.Photo;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
@@ -7,5 +8,3 @@ import org.springframework.data.jpa.repository.JpaRepository;
  */
 public interface PhotoRepository extends JpaRepository<Photo, Long> {
 }
-
-

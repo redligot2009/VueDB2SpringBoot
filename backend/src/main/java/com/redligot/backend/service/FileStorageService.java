@@ -1,4 +1,4 @@
-package com.redligot.backend;
+package com.redligot.backend.service;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -15,6 +15,9 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
+/**
+ * Service for file storage operations (currently unused since images are stored in DB).
+ */
 @Service
 public class FileStorageService {
 
@@ -51,5 +54,3 @@ public class FileStorageService {
 		Files.createDirectories(this.rootLocation);
 	}
 }
-
-

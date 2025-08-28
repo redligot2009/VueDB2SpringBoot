@@ -1,4 +1,4 @@
-package com.redligot.backend;
+package com.redligot.backend.model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -9,6 +9,9 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+/**
+ * Photo entity representing an uploaded image with metadata.
+ */
 @Entity
 @Table(name = "photos")
 public class Photo {
@@ -103,5 +106,3 @@ public class Photo {
 		this.data = data;
 	}
 }
-
-
