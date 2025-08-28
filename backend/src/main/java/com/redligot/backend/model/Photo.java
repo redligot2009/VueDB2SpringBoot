@@ -1,5 +1,6 @@
 package com.redligot.backend.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -22,21 +23,25 @@ public class Photo {
 
 	@NotBlank
 	@Size(max = 255)
+	@Column(length = 255)
 	private String title;
 
 	@Size(max = 500)
+	@Column(length = 500)
 	private String description;
 
 	/**
 	 * Original filename provided by the client (optional).
 	 */
 	@Size(max = 255)
+	@Column(length = 255)
 	private String originalFilename;
 
 	/**
 	 * MIME type of the uploaded file (e.g. image/png).
 	 */
 	@Size(max = 100)
+	@Column(length = 100)
 	private String contentType;
 
 	/**
@@ -46,8 +51,10 @@ public class Photo {
 
 	/**
 	 * Raw image bytes stored directly in the database.
+	 * Using BLOB for DB2 compatibility with explicit size.
 	 */
 	@Lob
+	@Column(columnDefinition = "BLOB(10M)")
 	private byte[] data;
 
 	public Long getId() {

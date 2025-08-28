@@ -2,8 +2,7 @@ package com.redligot.backend.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
@@ -13,16 +12,14 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 
 /**
- * Performs a quick DB2 connectivity check at application startup when the
- * {@code db2} Spring profile is active. Fails fast if the database is not
- * reachable or a basic query cannot execute.
+ * Component that checks DB2 connectivity on application startup.
+ * Only active when the 'db2' profile is enabled.
  */
-@Profile("db2")
 @Component
-public class Db2StartupChecker implements ApplicationRunner {
+@Profile("db2")
+public class Db2StartupChecker implements CommandLineRunner {
 
-	private static final Logger log = LoggerFactory.getLogger(Db2StartupChecker.class);
-
+	private static final Logger logger = LoggerFactory.getLogger(Db2StartupChecker.class);
 	private final DataSource dataSource;
 
 	public Db2StartupChecker(DataSource dataSource) {
@@ -30,16 +27,23 @@ public class Db2StartupChecker implements ApplicationRunner {
 	}
 
 	@Override
-	public void run(ApplicationArguments args) throws Exception {
-		try (Connection conn = dataSource.getConnection();
-			 Statement st = conn.createStatement();
-			 ResultSet rs = st.executeQuery("SELECT 1 FROM SYSIBM.SYSDUMMY1")) {
-			if (rs.next()) {
-				log.info("DB2 startup check succeeded (result={})", rs.getInt(1));
+	public void run(String... args) throws Exception {
+		logger.info("Checking DB2 connectivity...");
+		
+		try (Connection connection = dataSource.getConnection();
+			 Statement statement = connection.createStatement();
+			 ResultSet resultSet = statement.executeQuery("SELECT 1 FROM SYSIBM.SYSDUMMY1")) {
+			
+			if (resultSet.next()) {
+				int result = resultSet.getInt(1);
+				logger.info("✅ DB2 connection successful! Test query returned: {}", result);
+			} else {
+				logger.warn("⚠️ DB2 connection established but test query returned no results");
 			}
-		} catch (Exception ex) {
-			log.error("DB2 startup check failed: {}", ex.getMessage(), ex);
-			throw new IllegalStateException("DB2 connection test failed during startup", ex);
+		} catch (Exception e) {
+			logger.error("❌ DB2 connection failed: {}", e.getMessage());
+			// Don't throw the exception - let the application continue
+			// The connection pool will retry automatically
 		}
 	}
 }

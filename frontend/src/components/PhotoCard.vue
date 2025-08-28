@@ -25,22 +25,35 @@
           {{ photo.contentType }}
         </span>
       </div>
+      <div class="photo-actions">
+        <RouterLink :to="`/edit/${photo.id}`" class="edit-btn">
+          ✏️ Edit
+        </RouterLink>
+        <button @click="handleDelete" class="delete-btn" :disabled="deleting">
+          <span v-if="deleting">🗑️ Deleting...</span>
+          <span v-else>🗑️ Delete</span>
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { RouterLink } from 'vue-router'
 import { apiService, type Photo } from '@/services/api'
+import { usePhotoStore } from '@/stores/photoStore'
 
 interface Props {
   photo: Photo
 }
 
 const props = defineProps<Props>()
+const photoStore = usePhotoStore()
 
 const imageUrl = ref<string | null>(null)
 const imageError = ref(false)
+const deleting = ref(false)
 
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return '0 Bytes'
@@ -65,6 +78,22 @@ const handleImageError = () => {
   imageUrl.value = null
 }
 
+const handleDelete = async () => {
+  if (!confirm(`Are you sure you want to delete "${props.photo.title}"?`)) {
+    return
+  }
+
+  deleting.value = true
+  try {
+    await photoStore.deletePhoto(props.photo.id)
+  } catch (error) {
+    console.error('Error deleting photo:', error)
+    // The error will be handled by the store and displayed in the gallery
+  } finally {
+    deleting.value = false
+  }
+}
+
 onMounted(() => {
   loadImage()
 })
@@ -77,6 +106,9 @@ onMounted(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  height: fit-content;
+  display: flex;
+  flex-direction: column;
 }
 
 .photo-card:hover {
@@ -89,6 +121,7 @@ onMounted(() => {
   height: 200px;
   overflow: hidden;
   background: #f5f5f5;
+  flex-shrink: 0;
 }
 
 .photo-image {
@@ -115,6 +148,9 @@ onMounted(() => {
 
 .photo-info {
   padding: 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .photo-title {
@@ -134,6 +170,7 @@ onMounted(() => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  flex: 1;
 }
 
 .photo-meta {
@@ -141,6 +178,8 @@ onMounted(() => {
   gap: 12px;
   font-size: 12px;
   color: #999;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
 .photo-size,
@@ -148,5 +187,126 @@ onMounted(() => {
   background: #f5f5f5;
   padding: 2px 6px;
   border-radius: 4px;
+}
+
+.photo-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.edit-btn {
+  background: #2563eb;
+  color: white;
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  justify-content: center;
+}
+
+.edit-btn:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.delete-btn {
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  flex: 1;
+  justify-content: center;
+}
+
+.delete-btn:hover:not(:disabled) {
+  background: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+}
+
+.delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 768px) {
+  .photo-image-container {
+    height: 180px;
+  }
+  
+  .photo-info {
+    padding: 12px;
+  }
+  
+  .photo-title {
+    font-size: 16px;
+  }
+  
+  .photo-description {
+    font-size: 13px;
+  }
+  
+  .photo-actions {
+    gap: 6px;
+  }
+  
+  .edit-btn,
+  .delete-btn {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .photo-image-container {
+    height: 160px;
+  }
+  
+  .photo-info {
+    padding: 10px;
+  }
+  
+  .photo-title {
+    font-size: 15px;
+  }
+  
+  .photo-description {
+    font-size: 12px;
+    -webkit-line-clamp: 3;
+  }
+  
+  .photo-meta {
+    font-size: 11px;
+    gap: 8px;
+  }
+  
+  .photo-actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .edit-btn,
+  .delete-btn {
+    padding: 6px 8px;
+    font-size: 10px;
+    justify-content: center;
+  }
 }
 </style>

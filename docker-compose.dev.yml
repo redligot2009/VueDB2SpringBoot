@@ -1,38 +1,11 @@
 services:
-  db2:
-    image: icr.io/db2_community/db2
-    container_name: db2-dev
-    privileged: true
-    environment:
-      - DB2INST1_PASSWORD=passw0rd
-      - DBNAME=PHOTODB
-      - LICENSE=accept
-      - BLU=false
-      - ENABLE_ORACLE_COMPATIBILITY=false
-      - UPDATEAVAIL=NO
-      - TO_CREATE_SAMPLEDB=false
-      - PERSISTENT_HOME=true
-      - ARCHIVE_LOGS=false
-      - AUTOCONFIGURE=false
-    ports:
-      - "50000:50000"
-    shm_size: 2g
-    volumes:
-      - db2_data:/database
-    restart: unless-stopped
-
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: backend-dev
-    depends_on:
-      - db2
     environment:
-      - SPRING_PROFILES_ACTIVE=db2
-      - DB_URL=jdbc:db2://db2:50000/PHOTODB
-      - DB_USER=db2inst1
-      - DB_PASS=passw0rd
+      - SPRING_PROFILES_ACTIVE=h2
     ports:
       - "8080:8080"
     restart: unless-stopped
@@ -52,7 +25,3 @@ services:
       - ./frontend:/app
       - /app/node_modules
     restart: unless-stopped
-
-volumes:
-  db2_data:
-    driver: local

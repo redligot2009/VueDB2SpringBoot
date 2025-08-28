@@ -3,6 +3,9 @@ package com.redligot.backend.controller;
 import com.redligot.backend.model.Photo;
 import com.redligot.backend.service.PhotoService;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -26,13 +29,18 @@ public class PhotoController {
 	}
 
 	/**
-	 * List all photos metadata stored in the database.
+	 * List all photos metadata stored in the database with pagination support.
 	 *
-	 * @return list of {@link Photo}
+	 * @param page page number (0-based, default: 0)
+	 * @param size page size (default: 10)
+	 * @return paginated list of {@link Photo}
 	 */
 	@GetMapping
-	public List<Photo> list() {
-		return photoService.findAll();
+	public Page<Photo> list(
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size) {
+		Pageable pageable = PageRequest.of(page, size);
+		return photoService.findAll(pageable);
 	}
 
 	/**

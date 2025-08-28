@@ -4,6 +4,8 @@ import com.redligot.backend.model.Photo;
 import com.redligot.backend.repository.PhotoRepository;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,89 +27,140 @@ public class PhotoService {
 	}
 
 	/**
-	 * Retrieve all photos.
-	 *
-	 * @return list of all photos
+	 * Retrieve all photos from the database.
+	 * 
+	 * @return List of all photos
 	 */
 	public List<Photo> findAll() {
 		return photoRepository.findAll();
 	}
 
 	/**
+	 * Retrieve all photos from the database with pagination support.
+	 * 
+	 * @param pageable pagination parameters
+	 * @return Page of photos
+	 */
+	public Page<Photo> findAll(Pageable pageable) {
+		return photoRepository.findAll(pageable);
+	}
+
+	/**
 	 * Find a photo by its ID.
-	 *
-	 * @param id photo identifier
-	 * @return photo if found
+	 * 
+	 * @param id The photo ID
+	 * @return The photo if found
 	 * @throws ResponseStatusException if photo not found
 	 */
 	public Photo findById(Long id) {
 		return photoRepository.findById(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Photo not found with id " + id));
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
+						"Photo with ID " + id + " not found"));
 	}
 
 	/**
 	 * Create a new photo from uploaded file and metadata.
-	 *
-	 * @param title       photo title
-	 * @param description optional description
-	 * @param file        uploaded image file
-	 * @return created photo
-	 * @throws IOException when reading file fails
+	 * 
+	 * @param title Photo title
+	 * @param description Photo description (optional)
+	 * @param file Uploaded image file
+	 * @return The created photo
+	 * @throws ResponseStatusException if file is invalid or too large
 	 */
-	public Photo create(String title, String description, MultipartFile file) throws IOException {
-		Photo photo = new Photo();
-		photo.setTitle(title);
-		photo.setDescription(description);
-		photo.setOriginalFilename(file.getOriginalFilename());
-		photo.setContentType(file.getContentType());
-		photo.setSize(file.getSize());
-		photo.setData(file.getBytes());
-		return photoRepository.save(photo);
+	public Photo create(String title, String description, MultipartFile file) {
+		try {
+			// Validate file size (max 8MB to fit in DB2 BLOB(10M))
+			if (file.getSize() > 8 * 1024 * 1024) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+						"File size exceeds maximum limit of 8MB");
+			}
+
+			// Validate file type
+			String contentType = file.getContentType();
+			if (contentType == null || !contentType.startsWith("image/")) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+						"Only image files are allowed");
+			}
+
+			Photo photo = new Photo();
+			photo.setTitle(title);
+			photo.setDescription(description);
+			photo.setOriginalFilename(file.getOriginalFilename());
+			photo.setContentType(contentType);
+			photo.setSize(file.getSize());
+			photo.setData(file.getBytes());
+
+			return photoRepository.save(photo);
+		} catch (IOException e) {
+			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, 
+					"Failed to process uploaded file: " + e.getMessage());
+		}
 	}
 
 	/**
 	 * Update an existing photo.
-	 *
-	 * @param id          photo identifier
-	 * @param title       new title
-	 * @param description new description
-	 * @param file        new image file (optional)
-	 * @return updated photo
-	 * @throws IOException when reading file fails
+	 * 
+	 * @param id Photo ID
+	 * @param title New title
+	 * @param description New description
+	 * @param file New image file (optional)
+	 * @return The updated photo
+	 * @throws ResponseStatusException if photo not found or file is invalid
 	 */
-	public Photo update(Long id, String title, String description, MultipartFile file) throws IOException {
-		Photo existing = findById(id);
-		existing.setTitle(title);
-		existing.setDescription(description);
-		
+	public Photo update(Long id, String title, String description, MultipartFile file) {
+		Photo existingPhoto = findById(id);
+
+		existingPhoto.setTitle(title);
+		existingPhoto.setDescription(description);
+
 		if (file != null && !file.isEmpty()) {
-			existing.setOriginalFilename(file.getOriginalFilename());
-			existing.setContentType(file.getContentType());
-			existing.setSize(file.getSize());
-			existing.setData(file.getBytes());
+			try {
+				// Validate file size (max 8MB to fit in DB2 BLOB(10M))
+				if (file.getSize() > 8 * 1024 * 1024) {
+					throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+							"File size exceeds maximum limit of 8MB");
+				}
+
+				// Validate file type
+				String contentType = file.getContentType();
+				if (contentType == null || !contentType.startsWith("image/")) {
+					throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+							"Only image files are allowed");
+				}
+
+				existingPhoto.setOriginalFilename(file.getOriginalFilename());
+				existingPhoto.setContentType(contentType);
+				existingPhoto.setSize(file.getSize());
+				existingPhoto.setData(file.getBytes());
+			} catch (IOException e) {
+				throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, 
+						"Failed to process uploaded file: " + e.getMessage());
+			}
 		}
-		
-		return photoRepository.save(existing);
+
+		return photoRepository.save(existingPhoto);
 	}
 
 	/**
 	 * Delete a photo by ID.
-	 *
-	 * @param id photo identifier
+	 * 
+	 * @param id Photo ID
 	 * @throws ResponseStatusException if photo not found
 	 */
 	public void deleteById(Long id) {
 		if (!photoRepository.existsById(id)) {
-			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Photo not found with id " + id);
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, 
+					"Photo with ID " + id + " not found");
 		}
 		photoRepository.deleteById(id);
 	}
 
 	/**
-	 * Get photo metadata without image data.
-	 *
-	 * @param id photo identifier
-	 * @return photo metadata
+	 * Get photo metadata without the image data.
+	 * 
+	 * @param id Photo ID
+	 * @return Photo metadata
+	 * @throws ResponseStatusException if photo not found
 	 */
 	public PhotoMetadata getMetadata(Long id) {
 		Photo photo = findById(id);
@@ -122,21 +175,23 @@ public class PhotoService {
 	}
 
 	/**
-	 * Get photo image data as a resource.
-	 *
-	 * @param id photo identifier
-	 * @return image resource
+	 * Get the image data as a resource for download/display.
+	 * 
+	 * @param id Photo ID
+	 * @return ByteArrayResource containing the image data
+	 * @throws ResponseStatusException if photo not found
 	 */
 	public Resource getImageResource(Long id) {
 		Photo photo = findById(id);
-		if (photo.getData() == null || photo.getData().length == 0) {
-			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No image data stored for photo id " + id);
+		if (photo.getData() == null) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, 
+					"Image data not found for photo with ID " + id);
 		}
 		return new ByteArrayResource(photo.getData());
 	}
 
 	/**
-	 * Lightweight metadata DTO for clients that do not need image bytes.
+	 * Record class for photo metadata without image data.
 	 */
 	public record PhotoMetadata(
 			Long id,

@@ -1,19 +1,26 @@
 # ===== Build stage =====
-FROM eclipse-temurin:17-jdk AS build
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
-COPY .mvn/ .mvn/
-COPY mvnw mvnw
 COPY pom.xml .
-RUN ./mvnw -q -B -e -DskipTests dependency:go-offline
-COPY src src
-RUN ./mvnw -q -B -DskipTests package
+RUN mvn dependency:go-offline -B
+COPY src ./src
+RUN mvn clean package -DskipTests
 
 # ===== Runtime stage =====
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-ENV JAVA_OPTS=""
+
+# Copy the built JAR
 COPY --from=build /app/target/*.jar app.jar
+
+# Expose port
 EXPOSE 8080
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://localhost:8080/health || exit 1
+
+# Start the application
+CMD ["java", "-jar", "app.jar"]
 
 

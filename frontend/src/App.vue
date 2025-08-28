@@ -1,15 +1,43 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
+import { ref } from 'vue'
+
+const isMenuOpen = ref(false)
+
+const toggleMenu = () => {
+  isMenuOpen.value = !isMenuOpen.value
+}
+
+const closeMenu = () => {
+  isMenuOpen.value = false
+}
 </script>
 
 <template>
   <div id="app">
     <header class="app-header">
-      <div class="header-content">
-        <h1 class="app-title">Photo Gallery</h1>
-        <nav class="app-nav">
-          <RouterLink to="/" class="nav-link">Gallery</RouterLink>
-          <RouterLink to="/about" class="nav-link">About</RouterLink>
+      <div class="header-wrapper">
+        <div class="header-content">
+          <h1 class="app-title">Photo Gallery</h1>
+          
+          <!-- Mobile menu button -->
+          <button class="mobile-menu-btn" @click="toggleMenu" :class="{ 'active': isMenuOpen }">
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+          </button>
+
+          <!-- Desktop navigation -->
+          <nav class="app-nav desktop-nav">
+            <RouterLink to="/" class="nav-link" @click="closeMenu">Gallery</RouterLink>
+            <RouterLink to="/upload" class="nav-link" @click="closeMenu">Upload</RouterLink>
+          </nav>
+        </div>
+
+        <!-- Mobile navigation -->
+        <nav class="app-nav mobile-nav" :class="{ 'open': isMenuOpen }">
+          <RouterLink to="/" class="nav-link" @click="closeMenu">Gallery</RouterLink>
+          <RouterLink to="/upload" class="nav-link" @click="closeMenu">Upload</RouterLink>
         </nav>
       </div>
     </header>
@@ -21,20 +49,18 @@ import { RouterLink, RouterView } from 'vue-router'
 </template>
 
 <style>
-/* Global styles */
+/* Reset and base styles */
 * {
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
 }
 
 body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: #f8f9fa;
-  color: #333;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  color: #1a1a1a;
 }
 
 #app {
@@ -43,73 +69,199 @@ body {
   flex-direction: column;
 }
 
+/* Header styles */
 .app-header {
-  background: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  padding: 16px 0;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
   z-index: 100;
 }
 
-.header-content {
+.header-wrapper {
+  position: relative;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
+}
+
+.header-content {
+  padding: 1rem 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .app-title {
-  margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   font-weight: 700;
-  color: #333;
+  color: #1a1a1a;
+  margin: 0;
 }
 
-.app-nav {
+/* Desktop navigation */
+.desktop-nav {
   display: flex;
-  gap: 24px;
+  gap: 2rem;
 }
 
 .nav-link {
   text-decoration: none;
-  color: #666;
-  font-weight: 500;
-  padding: 8px 0;
-  border-bottom: 2px solid transparent;
-  transition: color 0.2s ease, border-color 0.2s ease;
+  color: #4a4a4a;
+  font-weight: 600;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  position: relative;
+  font-size: 1rem;
 }
 
 .nav-link:hover {
-  color: #007bff;
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.1);
+  transform: translateY(-1px);
 }
 
 .nav-link.router-link-active {
-  color: #007bff;
-  border-bottom-color: #007bff;
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.15);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
 }
 
+/* Mobile menu button */
+.mobile-menu-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: space-around;
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 10;
+}
+
+.hamburger-line {
+  width: 100%;
+  height: 3px;
+  background: #1a1a1a;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+.mobile-menu-btn.active .hamburger-line:nth-child(1) {
+  transform: rotate(45deg) translate(6px, 6px);
+}
+
+.mobile-menu-btn.active .hamburger-line:nth-child(2) {
+  opacity: 0;
+}
+
+.mobile-menu-btn.active .hamburger-line:nth-child(3) {
+  transform: rotate(-45deg) translate(6px, -6px);
+}
+
+/* Mobile navigation */
+.mobile-nav {
+  display: none;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 1rem 2rem;
+  gap: 0.5rem;
+  position: fixed;
+  top: 70px; /* Approximate header height */
+  left: 0;
+  right: 0;
+  z-index: 99;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-100%);
+  transition: all 0.3s ease;
+}
+
+.mobile-nav.open {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.mobile-nav .nav-link {
+  padding: 1rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  text-align: center;
+  border: 1px solid transparent;
+}
+
+.mobile-nav .nav-link:hover {
+  border-color: rgba(37, 99, 235, 0.2);
+}
+
+/* Main content */
 .app-main {
   flex: 1;
-  padding: 0;
+  padding: 2rem 0;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(5px);
+  margin: 0 1rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
-/* Responsive Design */
+/* Responsive design */
 @media (max-width: 768px) {
+  .header-wrapper {
+    margin: 0;
+  }
+  
   .header-content {
-    padding: 0 16px;
-    flex-direction: column;
-    gap: 12px;
+    padding: 1rem;
   }
   
   .app-title {
-    font-size: 1.25rem;
+    font-size: 1.5rem;
   }
   
-  .app-nav {
-    gap: 16px;
+  .desktop-nav {
+    display: none;
+  }
+  
+  .mobile-menu-btn {
+    display: flex;
+  }
+  
+  .mobile-nav {
+    display: flex !important;
+  }
+  
+  .app-main {
+    margin: 0 0.5rem;
+    padding: 1.5rem 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-content {
+    padding: 0.75rem;
+  }
+  
+  .app-title {
+    font-size: 1.3rem;
+  }
+  
+  .mobile-nav {
+    padding: 1rem;
+    top: 60px; /* Smaller header height on mobile */
+  }
+  
+  .app-main {
+    margin: 0 0.25rem;
+    padding: 1rem 0;
   }
 }
 </style>
