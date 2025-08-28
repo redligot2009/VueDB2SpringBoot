@@ -1,0 +1,20 @@
+# Exclude build artifacts and local files from Docker context
+
+target/
+.mvn/wrapper/maven-wrapper.jar
+
+# VCS
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local uploads (legacy)
+uploads/
