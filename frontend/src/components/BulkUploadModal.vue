@@ -62,7 +62,9 @@
                     :alt="file.name"
                     class="preview-image"
                   />
-                  <div v-else class="preview-placeholder">📄</div>
+                  <div v-else class="preview-placeholder">
+                    📄
+                  </div>
                 </div>
                 <div class="file-details">
                   <div class="file-name">{{ file.name }}</div>
@@ -469,6 +471,10 @@ watch(() => props.isOpen, (isOpen) => {
   justify-content: center;
   font-size: 1.5rem;
   color: #6b7280;
+}
+
+.preview-placeholder i {
+  font-size: 1.5rem;
 }
 
 .file-details {

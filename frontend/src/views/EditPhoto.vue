@@ -77,18 +77,18 @@
               @change="handleFileSelect" 
               class="file-input"
             />
-            <div v-if="!selectedFile" class="upload-placeholder">
-              <span>📁 Click to browse or drag and drop</span>
-              <small>Maximum file size: 8MB • Supported formats: JPG, PNG, GIF, WebP</small>
-            </div>
-            <div v-else-if="isFileTooLarge" class="file-error">
-              <span>❌ File too large</span>
-              <small>{{ getFileStatusMessage() }}</small>
-            </div>
-            <div v-else class="file-preview">
-              <span>✅ {{ selectedFile.name }}</span>
-              <small>{{ formatFileSize(selectedFile.size) }}</small>
-            </div>
+                         <div v-if="!selectedFile" class="upload-placeholder">
+                               <span>📁 Click to browse or drag and drop</span>
+               <small>Maximum file size: 8MB • Supported formats: JPG, PNG, GIF, WebP</small>
+             </div>
+             <div v-else-if="isFileTooLarge" class="file-error">
+                               <span>⚠️ File too large</span>
+               <small>{{ getFileStatusMessage() }}</small>
+             </div>
+             <div v-else class="file-preview">
+                               <span>✅ {{ selectedFile.name }}</span>
+               <small>{{ formatFileSize(selectedFile.size) }}</small>
+             </div>
             <button type="button" @click="triggerFileInput" class="browse-btn">
               Browse Files
             </button>
@@ -103,7 +103,7 @@
 
              <div class="form-actions">
          <button type="button" @click="showDeleteModal" class="delete-btn">
-           🗑️ Delete Photo
+                       🗑️ Delete Photo
          </button>
         <button type="button" @click="handleCancel" class="cancel-btn">
           Cancel

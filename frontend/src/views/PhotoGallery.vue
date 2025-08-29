@@ -1,124 +1,130 @@
 <template>
   <div class="photo-gallery">
-    <div class="gallery-header">
-      <div class="gallery-title-section">
-        <h1>Photo Gallery</h1>
-        <div class="gallery-stats">
-          <span v-if="photoStore.loading" class="loading-text">Loading...</span>
-          <span v-else-if="photoStore.hasPhotos" class="photo-count">
-            Showing {{ photoStore.photoCount }} of {{ photoStore.totalPhotoCount }} photos
-            <span v-if="photoStore.totalPages > 1" class="page-info">
-              (Page {{ photoStore.currentPage + 1 }} of {{ photoStore.totalPages }})
+    <div class="gallery-content">
+      <div class="gallery-header">
+        <div class="gallery-title-section">
+          <h1>Photo Gallery</h1>
+          <div class="gallery-stats">
+            <span v-if="photoStore.loading" class="loading-text">Loading...</span>
+            <span v-else-if="photoStore.hasPhotos" class="photo-count">
+              Showing {{ photoStore.photoCount }} of {{ photoStore.totalPhotoCount }} photos
+              <span v-if="photoStore.totalPages > 1" class="page-info">
+                (Page {{ photoStore.currentPage + 1 }} of {{ photoStore.totalPages }})
+              </span>
             </span>
-          </span>
-          <span v-else class="no-photos">No photos found</span>
+            <span v-else class="no-photos">No photos found</span>
+          </div>
         </div>
+                 <div class="gallery-actions">
+           <button @click="showBulkUpload" class="bulk-upload-btn">
+             📤 Bulk Upload
+           </button>
+           <RouterLink to="/upload" class="upload-btn">
+                           📷 Upload Photos
+           </RouterLink>
+         </div>
       </div>
-      <div class="gallery-actions">
-        <button @click="showBulkUpload" class="bulk-upload-btn">
-          📤 Bulk Upload
+
+      <!-- Error Message -->
+      <div v-if="photoStore.error" class="error-message">
+        <p>{{ photoStore.error }}</p>
+        <button @click="retryLoad" class="retry-button">Retry</button>
+      </div>
+
+      <!-- Loading State -->
+      <div v-if="photoStore.loading && !photoStore.hasPhotos" class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>Loading photos...</p>
+      </div>
+
+      <!-- Photo Grid -->
+      <div v-else-if="photoStore.hasPhotos" class="photo-grid">
+        <PhotoCard 
+          v-for="photo in photoStore.photos" 
+          :key="photo.id" 
+          :photo="photo" 
+        />
+      </div>
+
+             <!-- Empty State -->
+       <div v-else class="empty-state">
+         <div class="empty-icon">
+           📷
+         </div>
+         <h2>No Photos Yet</h2>
+         <p>Upload some photos to get started!</p>
+         <RouterLink to="/upload" class="upload-btn empty-upload-btn">
+           📷 Upload Your First Photo
+         </RouterLink>
+       </div>
+
+      <!-- Refresh Button -->
+      <div class="refresh-section">
+        <button @click="refreshPhotos" class="refresh-button" :disabled="photoStore.loading">
+          <span v-if="photoStore.loading">Refreshing...</span>
+          <span v-else>Refresh Gallery</span>
         </button>
-        <RouterLink to="/upload" class="upload-btn">
-          📷 Upload Photos
-        </RouterLink>
       </div>
     </div>
 
-    <!-- Error Message -->
-    <div v-if="photoStore.error" class="error-message">
-      <p>{{ photoStore.error }}</p>
-      <button @click="retryLoad" class="retry-button">Retry</button>
-    </div>
-
-    <!-- Loading State -->
-    <div v-if="photoStore.loading && !photoStore.hasPhotos" class="loading-container">
-      <div class="loading-spinner"></div>
-      <p>Loading photos...</p>
-    </div>
-
-    <!-- Photo Grid -->
-    <div v-else-if="photoStore.hasPhotos" class="photo-grid">
-      <PhotoCard 
-        v-for="photo in photoStore.photos" 
-        :key="photo.id" 
-        :photo="photo" 
-      />
-    </div>
-
-    <!-- Empty State -->
-    <div v-else class="empty-state">
-      <div class="empty-icon">📷</div>
-      <h2>No Photos Yet</h2>
-      <p>Upload some photos to get started!</p>
-      <RouterLink to="/upload" class="upload-btn empty-upload-btn">
-        📷 Upload Your First Photo
-      </RouterLink>
-    </div>
-
-    <!-- Pagination Controls -->
-    <div v-if="photoStore.totalPages > 1" class="pagination-section">
-      <div class="pagination-info">
-        <span>Page {{ photoStore.currentPage + 1 }} of {{ photoStore.totalPages }}</span>
-        <span>{{ photoStore.totalPhotoCount }} total photos</span>
-      </div>
-      
-      <div class="pagination-controls">
-        <button 
-          @click="goToFirstPage" 
-          :disabled="photoStore.isFirstPage || photoStore.loading"
-          class="pagination-btn first-btn"
-          title="First Page"
-        >
-          ⏮️
-        </button>
-        
-        <button 
-          @click="goToPreviousPage" 
-          :disabled="photoStore.isFirstPage || photoStore.loading"
-          class="pagination-btn prev-btn"
-          title="Previous Page"
-        >
-          ◀️
-        </button>
-        
-        <div class="page-numbers">
-          <button 
-            v-for="pageNum in visiblePageNumbers" 
-            :key="pageNum"
-            @click="goToPage(pageNum - 1)"
-            :class="['page-btn', { active: pageNum - 1 === photoStore.currentPage }]"
-            :disabled="photoStore.loading"
-          >
-            {{ pageNum }}
-          </button>
+    <!-- Sticky Pagination Controls -->
+    <div v-if="photoStore.totalPages > 1" class="sticky-pagination">
+      <div class="pagination-section">
+        <div class="pagination-info">
+          <span>Page {{ photoStore.currentPage + 1 }} of {{ photoStore.totalPages }}</span>
+          <span>{{ photoStore.totalPhotoCount }} total photos</span>
         </div>
         
-        <button 
-          @click="goToNextPage" 
-          :disabled="photoStore.isLastPage || photoStore.loading"
-          class="pagination-btn next-btn"
-          title="Next Page"
-        >
-          ▶️
-        </button>
-        
-        <button 
-          @click="goToLastPage" 
-          :disabled="photoStore.isLastPage || photoStore.loading"
-          class="pagination-btn last-btn"
-          title="Last Page"
-        >
-          ⏭️
-        </button>
+                 <div class="pagination-controls">
+           <button 
+             @click="goToFirstPage" 
+             :disabled="photoStore.isFirstPage || photoStore.loading"
+             class="pagination-btn first-btn"
+             title="First Page"
+           >
+             ⏮️
+           </button>
+           
+           <button 
+             @click="goToPreviousPage" 
+             :disabled="photoStore.isFirstPage || photoStore.loading"
+             class="pagination-btn prev-btn"
+             title="Previous Page"
+           >
+             ◀️
+           </button>
+          
+          <div class="page-numbers">
+            <button 
+              v-for="pageNum in visiblePageNumbers" 
+              :key="pageNum"
+              @click="goToPage(pageNum - 1)"
+              :class="['page-btn', { active: pageNum - 1 === photoStore.currentPage }]"
+              :disabled="photoStore.loading"
+            >
+              {{ pageNum }}
+            </button>
+          </div>
+          
+                     <button 
+             @click="goToNextPage" 
+             :disabled="photoStore.isLastPage || photoStore.loading"
+             class="pagination-btn next-btn"
+             title="Next Page"
+           >
+             ▶️
+           </button>
+           
+           <button 
+             @click="goToLastPage" 
+             :disabled="photoStore.isLastPage || photoStore.loading"
+             class="pagination-btn last-btn"
+             title="Last Page"
+           >
+             ⏭️
+           </button>
+        </div>
       </div>
-    </div>
-
-    <!-- Refresh Button -->
-    <div class="refresh-section">
-      <button @click="refreshPhotos" class="refresh-button" :disabled="photoStore.loading">
-        <span v-if="photoStore.loading">Refreshing...</span>
-        <span v-else>Refresh Gallery</span>
-      </button>
     </div>
   </div>
 </template>
@@ -225,11 +231,19 @@ onMounted(() => {
 .photo-gallery {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 2rem;
   background: rgba(255, 255, 255, 0.95);
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.gallery-content {
+  flex: 1;
+  padding: 0 2rem;
+  padding-bottom: 0; /* Remove bottom padding to prevent overlap with sticky pagination */
 }
 
 .gallery-header {
@@ -381,6 +395,11 @@ onMounted(() => {
 .empty-icon {
   font-size: 4rem;
   margin-bottom: 1rem;
+  color: #6b7280;
+}
+
+.empty-icon i {
+  font-size: 4rem;
 }
 
 .empty-state h2 {
@@ -401,13 +420,21 @@ onMounted(() => {
   padding: 1rem 2rem;
 }
 
-/* Pagination Styles */
+/* Sticky Pagination Styles */
+.sticky-pagination {
+  position: sticky;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  z-index: 100;
+  margin-top: auto;
+}
+
 .pagination-section {
-  margin: 2rem 0;
-  padding: 1.5rem;
+  padding: 1.5rem 2rem;
   background: rgba(248, 250, 252, 0.8);
-  border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 0 0 12px 12px;
 }
 
 .pagination-info {
@@ -531,8 +558,11 @@ onMounted(() => {
 
 @media (max-width: 768px) {
   .photo-gallery {
-    padding: 0 1rem;
     margin: 0 0.5rem;
+  }
+  
+  .gallery-content {
+    padding: 0 1rem;
   }
   
   .gallery-header {
@@ -566,6 +596,10 @@ onMounted(() => {
     font-size: 1.75rem;
   }
   
+  .pagination-section {
+    padding: 1rem;
+  }
+  
   .pagination-controls {
     gap: 0.25rem;
   }
@@ -587,6 +621,9 @@ onMounted(() => {
 @media (max-width: 480px) {
   .photo-gallery {
     margin: 0 0.25rem;
+  }
+  
+  .gallery-content {
     padding: 0 0.75rem;
   }
   
@@ -613,7 +650,7 @@ onMounted(() => {
   }
   
   .pagination-section {
-    padding: 1rem;
+    padding: 0.75rem;
   }
   
   .page-numbers {

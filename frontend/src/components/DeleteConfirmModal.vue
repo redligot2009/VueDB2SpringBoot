@@ -9,7 +9,9 @@
       </div>
       
       <div class="modal-body">
-        <div class="warning-icon">⚠️</div>
+        <div class="warning-icon">
+          ⚠️
+        </div>
         <p class="modal-message">{{ message }}</p>
         <p class="modal-subtitle">This action cannot be undone.</p>
       </div>
@@ -135,7 +137,10 @@ const handleOverlayClick = () => {
 .warning-icon {
   font-size: 3rem;
   margin-bottom: 1rem;
+  color: #f59e0b;
 }
+
+
 
 .modal-message {
   font-size: 1.1rem;

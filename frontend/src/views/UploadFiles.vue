@@ -10,7 +10,7 @@
           @click="showBulkUpload" 
           class="btn btn-secondary bulk-upload-btn"
         >
-          📤 Bulk Upload Multiple Photos
+                     📤 Bulk Upload Multiple Photos
         </button>
       </div>
     </div>
@@ -34,13 +34,17 @@
         />
         
         <div v-if="!selectedFile" class="upload-placeholder">
-          <div class="upload-icon">📁</div>
+          <div class="upload-icon">
+            📁
+          </div>
           <p>Click to select or drag and drop an image here</p>
           <p class="upload-hint">Supports: JPG, PNG, GIF, WebP</p>
         </div>
         
         <div v-else-if="isFileTooLarge" class="file-error">
-          <div class="error-icon">⚠️</div>
+          <div class="error-icon">
+            ⚠️
+          </div>
           <div class="error-info">
             <p class="error-title">File Too Large</p>
             <p class="error-message">{{ selectedFile.name }} ({{ formatFileSize(selectedFile.size) }})</p>
@@ -415,6 +419,11 @@ onMounted(() => {
 .upload-icon {
   font-size: 3rem;
   margin-bottom: 1rem;
+  color: #6b7280;
+}
+
+.upload-icon i {
+  font-size: 3rem;
 }
 
 .upload-hint {
@@ -439,6 +448,11 @@ onMounted(() => {
 }
 
 .error-icon {
+  font-size: 2rem;
+  color: #dc2626;
+}
+
+.error-icon i {
   font-size: 2rem;
 }
 

@@ -25,14 +25,14 @@
           {{ photo.contentType }}
         </span>
       </div>
-      <div class="photo-actions">
-        <RouterLink :to="`/edit/${photo.id}`" class="edit-btn">
-          ✏️ Edit
-        </RouterLink>
-        <button @click="showDeleteModal" class="delete-btn">
-          🗑️ Delete
-        </button>
-      </div>
+             <div class="photo-actions">
+         <RouterLink :to="`/edit/${photo.id}`" class="edit-btn">
+           ✏️ Edit
+         </RouterLink>
+         <button @click="showDeleteModal" class="delete-btn">
+           🗑️ Delete
+         </button>
+       </div>
     </div>
   </div>
 </template>
