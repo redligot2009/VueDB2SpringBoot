@@ -101,11 +101,10 @@
         </div>
       </div>
 
-      <div class="form-actions">
-        <button type="button" @click="handleDelete" :disabled="deleting" class="delete-btn">
-          <span v-if="deleting">🗑️ Deleting...</span>
-          <span v-else>🗑️ Delete Photo</span>
-        </button>
+             <div class="form-actions">
+         <button type="button" @click="showDeleteModal" class="delete-btn">
+           🗑️ Delete Photo
+         </button>
         <button type="button" @click="handleCancel" class="cancel-btn">
           Cancel
         </button>
@@ -116,31 +115,32 @@
       </div>
     </form>
 
-    <!-- Not Found -->
-    <div v-else class="not-found">
-      <h2>Photo Not Found</h2>
-      <p>The photo you're looking for doesn't exist.</p>
-      <RouterLink to="/" class="back-btn">Back to Gallery</RouterLink>
-    </div>
-  </div>
-</template>
+         <!-- Not Found -->
+     <div v-else class="not-found">
+       <h2>Photo Not Found</h2>
+       <p>The photo you're looking for doesn't exist.</p>
+       <RouterLink to="/" class="back-btn">Back to Gallery</RouterLink>
+     </div>
+   </div>
+ </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { usePhotoStore } from '@/stores/photoStore'
+import { useModalStore } from '@/stores/modalStore'
 import { apiService, type Photo } from '@/services/api'
 
 const route = useRoute()
 const router = useRouter()
 const photoStore = usePhotoStore()
+const modalStore = useModalStore()
 
 // State
 const photo = ref<Photo | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const submitting = ref(false)
-const deleting = ref(false)
 const currentImageUrl = ref<string | null>(null)
 const imageError = ref(false)
 
@@ -283,11 +283,6 @@ const handleCancel = () => {
 const handleDelete = async () => {
   if (!photo.value) return
 
-  if (!confirm(`Are you sure you want to delete "${photo.value.title}"? This action cannot be undone.`)) {
-    return
-  }
-
-  deleting.value = true
   error.value = null
 
   try {
@@ -296,9 +291,16 @@ const handleDelete = async () => {
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to delete photo'
     console.error('Error deleting photo:', err)
-  } finally {
-    deleting.value = false
   }
+}
+
+const showDeleteModal = () => {
+  if (!photo.value) return
+  
+  modalStore.showDeleteModal(
+    `Are you sure you want to delete '${photo.value.title}'? This action cannot be undone.`,
+    handleDelete
+  )
 }
 
 onMounted(() => {

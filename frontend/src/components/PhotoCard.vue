@@ -29,9 +29,8 @@
         <RouterLink :to="`/edit/${photo.id}`" class="edit-btn">
           ✏️ Edit
         </RouterLink>
-        <button @click="handleDelete" class="delete-btn" :disabled="deleting">
-          <span v-if="deleting">🗑️ Deleting...</span>
-          <span v-else>🗑️ Delete</span>
+        <button @click="showDeleteModal" class="delete-btn">
+          🗑️ Delete
         </button>
       </div>
     </div>
@@ -43,6 +42,7 @@ import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { apiService, type Photo } from '@/services/api'
 import { usePhotoStore } from '@/stores/photoStore'
+import { useModalStore } from '@/stores/modalStore'
 
 interface Props {
   photo: Photo
@@ -50,10 +50,10 @@ interface Props {
 
 const props = defineProps<Props>()
 const photoStore = usePhotoStore()
+const modalStore = useModalStore()
 
 const imageUrl = ref<string | null>(null)
 const imageError = ref(false)
-const deleting = ref(false)
 
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return '0 Bytes'
@@ -79,19 +79,19 @@ const handleImageError = () => {
 }
 
 const handleDelete = async () => {
-  if (!confirm(`Are you sure you want to delete "${props.photo.title}"?`)) {
-    return
-  }
-
-  deleting.value = true
   try {
     await photoStore.deletePhoto(props.photo.id)
   } catch (error) {
     console.error('Error deleting photo:', error)
     // The error will be handled by the store and displayed in the gallery
-  } finally {
-    deleting.value = false
   }
+}
+
+const showDeleteModal = () => {
+  modalStore.showDeleteModal(
+    `Are you sure you want to delete '${props.photo.title}'?`,
+    handleDelete
+  )
 }
 
 onMounted(() => {

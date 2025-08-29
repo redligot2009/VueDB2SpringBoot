@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
 import { ref } from 'vue'
+import { useModalStore } from '@/stores/modalStore'
+import DeleteConfirmModal from '@/components/DeleteConfirmModal.vue'
 
 const isMenuOpen = ref(false)
+const modalStore = useModalStore()
 
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value
@@ -45,6 +48,15 @@ const closeMenu = () => {
     <main class="app-main">
       <RouterView />
     </main>
+
+    <!-- Global Delete Confirmation Modal -->
+    <DeleteConfirmModal
+      :is-open="modalStore.deleteModal.isOpen"
+      :message="modalStore.deleteModal.message"
+      :is-deleting="modalStore.deleteModal.isDeleting"
+      @confirm="modalStore.handleConfirm"
+      @cancel="modalStore.handleCancel"
+    />
   </div>
 </template>
 
@@ -91,6 +103,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 2rem;
 }
 
 .app-title {
@@ -104,6 +117,9 @@ body {
 .desktop-nav {
   display: flex;
   gap: 2rem;
+  flex: 1;
+  justify-content: center;
+  margin-left: 2rem;
 }
 
 .nav-link {
@@ -196,10 +212,13 @@ body {
   font-size: 1.1rem;
   text-align: center;
   border: 1px solid transparent;
+  position: relative;
+  z-index: 1;
 }
 
 .mobile-nav .nav-link:hover {
   border-color: rgba(37, 99, 235, 0.2);
+  z-index: 1;
 }
 
 /* Main content */
@@ -221,6 +240,7 @@ body {
   
   .header-content {
     padding: 1rem;
+    gap: 1rem;
   }
   
   .app-title {
@@ -262,6 +282,19 @@ body {
   .app-main {
     margin: 0 0.25rem;
     padding: 1rem 0;
+  }
+}
+
+/* Large screen optimizations */
+@media (min-width: 1200px) {
+  .desktop-nav {
+    gap: 3rem;
+    margin-left: 3rem;
+  }
+  
+  .nav-link {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
   }
 }
 </style>

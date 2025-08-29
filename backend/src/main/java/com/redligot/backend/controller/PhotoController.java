@@ -29,6 +29,33 @@ public class PhotoController {
 	}
 
 	/**
+	 * Response DTO for paginated photo results.
+	 */
+	public record PaginatedPhotoResponse(
+			List<Photo> content,
+			long totalElements,
+			int totalPages,
+			int size,
+			int number,
+			boolean first,
+			boolean last,
+			int numberOfElements
+	) {
+		public static PaginatedPhotoResponse fromPage(Page<Photo> page) {
+			return new PaginatedPhotoResponse(
+					page.getContent(),
+					page.getTotalElements(),
+					page.getTotalPages(),
+					page.getSize(),
+					page.getNumber(),
+					page.isFirst(),
+					page.isLast(),
+					page.getNumberOfElements()
+			);
+		}
+	}
+
+	/**
 	 * List all photos metadata stored in the database with pagination support.
 	 *
 	 * @param page page number (0-based, default: 0)
@@ -36,11 +63,12 @@ public class PhotoController {
 	 * @return paginated list of {@link Photo}
 	 */
 	@GetMapping
-	public Page<Photo> list(
+	public PaginatedPhotoResponse list(
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "10") int size) {
 		Pageable pageable = PageRequest.of(page, size);
-		return photoService.findAll(pageable);
+		Page<Photo> photoPage = photoService.findAll(pageable);
+		return PaginatedPhotoResponse.fromPage(photoPage);
 	}
 
 	/**
