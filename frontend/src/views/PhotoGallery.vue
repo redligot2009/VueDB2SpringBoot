@@ -16,12 +16,12 @@
           </div>
         </div>
                  <div class="gallery-actions">
-           <button @click="showBulkUpload" class="bulk-upload-btn">
-             📤 Bulk Upload
-           </button>
-           <RouterLink to="/upload" class="upload-btn">
-                           📷 Upload Photos
-           </RouterLink>
+                       <button @click="showBulkUpload" class="bulk-upload-btn">
+              <font-awesome-icon icon="fa-solid fa-upload" /> Bulk Upload
+            </button>
+                       <RouterLink to="/upload" class="upload-btn">
+              <font-awesome-icon icon="fa-solid fa-camera" /> Upload Photos
+            </RouterLink>
          </div>
       </div>
 
@@ -49,13 +49,13 @@
              <!-- Empty State -->
        <div v-else class="empty-state">
          <div class="empty-icon">
-           📷
+           <font-awesome-icon icon="fa-solid fa-camera" />
          </div>
          <h2>No Photos Yet</h2>
          <p>Upload some photos to get started!</p>
-         <RouterLink to="/upload" class="upload-btn empty-upload-btn">
-           📷 Upload Your First Photo
-         </RouterLink>
+                   <RouterLink to="/upload" class="upload-btn empty-upload-btn">
+            <font-awesome-icon icon="fa-solid fa-camera" /> Upload Your First Photo
+          </RouterLink>
        </div>
 
       <!-- Refresh Button -->
@@ -82,7 +82,7 @@
              class="pagination-btn first-btn"
              title="First Page"
            >
-             ⏮️
+                           <font-awesome-icon icon="fa-solid fa-angle-double-left" />
            </button>
            
            <button 
@@ -91,7 +91,7 @@
              class="pagination-btn prev-btn"
              title="Previous Page"
            >
-             ◀️
+                           <font-awesome-icon icon="fa-solid fa-angle-left" />
            </button>
           
           <div class="page-numbers">
@@ -112,7 +112,7 @@
              class="pagination-btn next-btn"
              title="Next Page"
            >
-             ▶️
+                           <font-awesome-icon icon="fa-solid fa-angle-right" />
            </button>
            
            <button 
@@ -121,7 +121,7 @@
              class="pagination-btn last-btn"
              title="Last Page"
            >
-             ⏭️
+                           <font-awesome-icon icon="fa-solid fa-angle-double-right" />
            </button>
         </div>
       </div>

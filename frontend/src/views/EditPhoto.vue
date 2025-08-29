@@ -78,15 +78,15 @@
               class="file-input"
             />
                          <div v-if="!selectedFile" class="upload-placeholder">
-                               <span>📁 Click to browse or drag and drop</span>
+                               <span><font-awesome-icon icon="fa-solid fa-folder-open" /> Click to browse or drag and drop</span>
                <small>Maximum file size: 8MB • Supported formats: JPG, PNG, GIF, WebP</small>
              </div>
              <div v-else-if="isFileTooLarge" class="file-error">
-                               <span>⚠️ File too large</span>
+                               <span><font-awesome-icon icon="fa-solid fa-exclamation-triangle" /> File too large</span>
                <small>{{ getFileStatusMessage() }}</small>
              </div>
              <div v-else class="file-preview">
-                               <span>✅ {{ selectedFile.name }}</span>
+                               <span><font-awesome-icon icon="fa-solid fa-check" /> {{ selectedFile.name }}</span>
                <small>{{ formatFileSize(selectedFile.size) }}</small>
              </div>
             <button type="button" @click="triggerFileInput" class="browse-btn">
@@ -103,7 +103,7 @@
 
              <div class="form-actions">
          <button type="button" @click="showDeleteModal" class="delete-btn">
-                       🗑️ Delete Photo
+                       <font-awesome-icon icon="fa-solid fa-trash" /> Delete Photo
          </button>
         <button type="button" @click="handleCancel" class="cancel-btn">
           Cancel

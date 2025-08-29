@@ -4,13 +4,13 @@
       <div class="modal-header">
         <h3 class="modal-title">Confirm Delete</h3>
         <button @click="handleCancel" class="close-btn" aria-label="Close">
-          ✕
+          <font-awesome-icon icon="fa-solid fa-times" />
         </button>
       </div>
       
       <div class="modal-body">
         <div class="warning-icon">
-          ⚠️
+          <font-awesome-icon icon="fa-solid fa-exclamation-triangle" />
         </div>
         <p class="modal-message">{{ message }}</p>
         <p class="modal-subtitle">This action cannot be undone.</p>
@@ -21,8 +21,8 @@
           Cancel
         </button>
         <button @click="handleConfirm" class="delete-btn" :disabled="isDeleting">
-          <span v-if="isDeleting">🗑️ Deleting...</span>
-          <span v-else>🗑️ Delete</span>
+          <span v-if="isDeleting"><font-awesome-icon icon="fa-solid fa-trash" /> Deleting...</span>
+          <span v-else><font-awesome-icon icon="fa-solid fa-trash" /> Delete</span>
         </button>
       </div>
     </div>

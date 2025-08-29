@@ -27,10 +27,10 @@
       </div>
              <div class="photo-actions">
          <RouterLink :to="`/edit/${photo.id}`" class="edit-btn">
-           ✏️ Edit
+           <font-awesome-icon icon="fa-solid fa-edit" /> Edit
          </RouterLink>
          <button @click="showDeleteModal" class="delete-btn">
-           🗑️ Delete
+           <font-awesome-icon icon="fa-solid fa-trash" /> Delete
          </button>
        </div>
     </div>

@@ -10,7 +10,7 @@
           @click="showBulkUpload" 
           class="btn btn-secondary bulk-upload-btn"
         >
-                     📤 Bulk Upload Multiple Photos
+                     <font-awesome-icon icon="fa-solid fa-upload" /> Bulk Upload Multiple Photos
         </button>
       </div>
     </div>
@@ -34,24 +34,24 @@
         />
         
         <div v-if="!selectedFile" class="upload-placeholder">
-          <div class="upload-icon">
-            📁
-          </div>
+                     <div class="upload-icon">
+             <font-awesome-icon icon="fa-solid fa-folder-open" />
+           </div>
           <p>Click to select or drag and drop an image here</p>
           <p class="upload-hint">Supports: JPG, PNG, GIF, WebP</p>
         </div>
         
         <div v-else-if="isFileTooLarge" class="file-error">
-          <div class="error-icon">
-            ⚠️
-          </div>
+                     <div class="error-icon">
+             <font-awesome-icon icon="fa-solid fa-exclamation-triangle" />
+           </div>
           <div class="error-info">
             <p class="error-title">File Too Large</p>
             <p class="error-message">{{ selectedFile.name }} ({{ formatFileSize(selectedFile.size) }})</p>
             <p class="error-detail">Maximum allowed size is 8MB. Please choose a smaller file.</p>
           </div>
           <button type="button" @click="removeFile" class="remove-file-btn">
-            ✕
+            <font-awesome-icon icon="fa-solid fa-times" />
           </button>
         </div>
         
@@ -65,7 +65,7 @@
             </p>
           </div>
           <button type="button" @click="removeFile" class="remove-file-btn">
-            ✕
+            <font-awesome-icon icon="fa-solid fa-times" />
           </button>
         </div>
       </div>
@@ -122,7 +122,7 @@
     <!-- Error Message -->
     <div v-if="error" class="error-message">
       <p>{{ error }}</p>
-      <button @click="clearError" class="error-close">✕</button>
+      <button @click="clearError" class="error-close"><font-awesome-icon icon="fa-solid fa-times" /></button>
     </div>
 
     <!-- Bulk Upload Modal is now handled globally in App.vue -->

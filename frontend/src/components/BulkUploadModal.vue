@@ -4,7 +4,7 @@
       <div class="modal-header">
         <h3 class="modal-title">Bulk Upload Photos</h3>
         <button @click="handleCancel" class="close-btn" aria-label="Close">
-          ✕
+          <font-awesome-icon icon="fa-solid fa-times" />
         </button>
       </div>
       
@@ -31,11 +31,11 @@
               class="file-input"
             />
             <div v-if="selectedFiles.length === 0" class="upload-placeholder">
-              <span>📁 Click to browse or drag and drop multiple images</span>
+              <span><font-awesome-icon icon="fa-solid fa-folder-open" /> Click to browse or drag and drop multiple images</span>
               <small>Maximum file size: 8MB per file • Supported formats: JPG, PNG, GIF, WebP</small>
             </div>
             <div v-else class="files-selected">
-              <span>✅ {{ selectedFiles.length }} file(s) selected</span>
+              <span><font-awesome-icon icon="fa-solid fa-check" /> {{ selectedFiles.length }} file(s) selected</span>
               <small>{{ getTotalFileSize() }}</small>
             </div>
             <button type="button" @click="triggerFileInput" class="browse-btn">
@@ -63,7 +63,7 @@
                     class="preview-image"
                   />
                   <div v-else class="preview-placeholder">
-                    📄
+                    <font-awesome-icon icon="fa-solid fa-file" />
                   </div>
                 </div>
                 <div class="file-details">
@@ -87,7 +87,7 @@
                   rows="2"
                 ></textarea>
                 <button @click="removeFile(index)" class="remove-btn" type="button">
-                  ✕
+                  <font-awesome-icon icon="fa-solid fa-times" />
                 </button>
               </div>
             </div>
@@ -109,8 +109,8 @@
           class="upload-btn" 
           :disabled="!canUpload || isUploading"
         >
-          <span v-if="isUploading">📤 Uploading...</span>
-          <span v-else>📤 Upload {{ selectedFiles.length }} Photo{{ selectedFiles.length !== 1 ? 's' : '' }}</span>
+          <span v-if="isUploading"><font-awesome-icon icon="fa-solid fa-upload" /> Uploading...</span>
+          <span v-else><font-awesome-icon icon="fa-solid fa-upload" /> Upload {{ selectedFiles.length }} Photo{{ selectedFiles.length !== 1 ? 's' : '' }}</span>
         </button>
       </div>
     </div>
