@@ -3,6 +3,7 @@ import { RouterLink, RouterView } from 'vue-router'
 import { ref } from 'vue'
 import { useModalStore } from '@/stores/modalStore'
 import DeleteConfirmModal from '@/components/DeleteConfirmModal.vue'
+import BulkUploadModal from '@/components/BulkUploadModal.vue'
 
 const isMenuOpen = ref(false)
 const modalStore = useModalStore()
@@ -56,6 +57,14 @@ const closeMenu = () => {
       :is-deleting="modalStore.deleteModal.isDeleting"
       @confirm="modalStore.handleConfirm"
       @cancel="modalStore.handleCancel"
+    />
+
+    <!-- Global Bulk Upload Modal -->
+    <BulkUploadModal
+      :is-open="modalStore.bulkUploadModal.isOpen"
+      :is-uploading="modalStore.bulkUploadModal.isUploading"
+      @upload="modalStore.handleBulkUpload"
+      @cancel="modalStore.handleBulkUploadCancel"
     />
   </div>
 </template>

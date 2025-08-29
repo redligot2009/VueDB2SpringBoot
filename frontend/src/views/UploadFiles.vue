@@ -4,6 +4,15 @@
       <h1>Upload Files</h1>
       <p>Drag and drop your photos here or click to browse</p>
       <p class="upload-limits">Maximum file size: 8MB • Supported formats: JPG, PNG, GIF, WebP</p>
+      <div class="upload-options">
+        <button 
+          type="button" 
+          @click="showBulkUpload" 
+          class="btn btn-secondary bulk-upload-btn"
+        >
+          📤 Bulk Upload Multiple Photos
+        </button>
+      </div>
     </div>
 
     <form @submit.prevent="handleUpload" class="upload-form">
@@ -111,6 +120,8 @@
       <p>{{ error }}</p>
       <button @click="clearError" class="error-close">✕</button>
     </div>
+
+    <!-- Bulk Upload Modal is now handled globally in App.vue -->
   </div>
 </template>
 
@@ -118,9 +129,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePhotoStore } from '@/stores/photoStore'
+import { useModalStore } from '@/stores/modalStore'
 
 const router = useRouter()
 const photoStore = usePhotoStore()
+const modalStore = useModalStore()
 
 // Constants
 const MAX_FILE_SIZE = 8 * 1024 * 1024 // 8MB in bytes
@@ -275,6 +288,19 @@ const clearError = () => {
   error.value = null
 }
 
+// Bulk upload methods
+const showBulkUpload = () => {
+  modalStore.showBulkUploadModal(
+    async (files: File[], titles?: string[], descriptions?: string[]) => {
+      await photoStore.bulkAddPhotos(files, titles, descriptions)
+      router.push('/')
+    },
+    () => {
+      // Optional cancel callback
+    }
+  )
+}
+
 // Clear any existing errors when component mounts
 onMounted(() => {
   clearError()
@@ -309,6 +335,28 @@ onMounted(() => {
   font-size: 0.9rem !important;
   color: #95a5a6 !important;
   font-style: italic;
+}
+
+.upload-options {
+  margin-top: 1rem;
+}
+
+.bulk-upload-btn {
+  background: #9b59b6 !important;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bulk-upload-btn:hover {
+  background: #8e44ad !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(155, 89, 182, 0.3);
 }
 
 .upload-form {
@@ -418,7 +466,7 @@ onMounted(() => {
 .preview-image {
   width: 80px;
   height: 80px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 8px;
   border: 2px solid #ecf0f1;
 }

@@ -89,6 +89,34 @@ export const usePhotoStore = defineStore('photo', () => {
     }
   }
 
+  const bulkAddPhotos = async (files: File[], titles?: string[], descriptions?: string[]) => {
+    // Client-side validation for all files
+    for (const file of files) {
+      if (file.size > 8 * 1024 * 1024) {
+        throw new Error(`File ${file.name} exceeds maximum limit of 8MB`)
+      }
+      
+      if (!file.type.startsWith('image/')) {
+        throw new Error(`File ${file.name} is not a valid image file (JPG, PNG, GIF, WebP)`)
+      }
+    }
+
+    loading.value = true
+    error.value = null
+    
+    try {
+      const newPhotos = await apiService.bulkCreatePhotos(files, titles, descriptions)
+      // Refresh the current page to show the new photos
+      await fetchPhotos(currentPage.value, pageSize.value)
+      return newPhotos
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to add photos'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   const updatePhoto = async (id: number, title: string, description: string, file?: File) => {
     // Client-side validation for file if provided
     if (file) {
@@ -170,6 +198,7 @@ export const usePhotoStore = defineStore('photo', () => {
     fetchPreviousPage,
     goToPage,
     addPhoto,
+    bulkAddPhotos,
     updatePhoto,
     deletePhoto,
     clearError

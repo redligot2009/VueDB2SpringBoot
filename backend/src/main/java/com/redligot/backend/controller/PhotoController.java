@@ -107,6 +107,43 @@ public class PhotoController {
 	}
 
 	/**
+	 * Bulk upload multiple photos at once.
+	 *
+	 * Expected multipart parts:
+	 * - files: array of image files
+	 * - titles: array of titles (optional, will use filename if not provided)
+	 * - descriptions: array of descriptions (optional)
+	 *
+	 * @param files       array of uploaded image files
+	 * @param titles      array of titles (optional)
+	 * @param descriptions array of descriptions (optional)
+	 * @return list of created {@link Photo} objects
+	 * @throws IOException when reading the uploaded files fails
+	 */
+	@PostMapping(path = "/bulk", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<List<Photo>> bulkCreate(
+			@RequestPart("files") MultipartFile[] files,
+			@RequestParam(value = "titles", required = false) String[] titles,
+			@RequestParam(value = "descriptions", required = false) String[] descriptions) throws IOException {
+		
+		// Debug: Log what we received
+		System.out.println("Bulk upload received:");
+		System.out.println("- Files count: " + (files != null ? files.length : "null"));
+		System.out.println("- Titles count: " + (titles != null ? titles.length : "null"));
+		System.out.println("- Descriptions count: " + (descriptions != null ? descriptions.length : "null"));
+		
+		if (files != null) {
+			for (int i = 0; i < files.length; i++) {
+				System.out.println("- File " + i + ": " + files[i].getOriginalFilename() + 
+					" (size: " + files[i].getSize() + ", type: " + files[i].getContentType() + ")");
+			}
+		}
+		
+		List<Photo> savedPhotos = photoService.bulkCreate(files, titles, descriptions);
+		return ResponseEntity.ok(savedPhotos);
+	}
+
+	/**
 	 * Update existing photo metadata and optionally replace the stored image bytes.
 	 *
 	 * @param id          photo identifier

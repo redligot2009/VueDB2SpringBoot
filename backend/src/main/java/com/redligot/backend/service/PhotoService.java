@@ -98,6 +98,78 @@ public class PhotoService {
 	}
 
 	/**
+	 * Bulk create multiple photos from uploaded files and metadata.
+	 * 
+	 * @param files Array of uploaded image files
+	 * @param titles Array of titles (optional, will use filename if not provided)
+	 * @param descriptions Array of descriptions (optional)
+	 * @return List of created photos
+	 * @throws ResponseStatusException if any file is invalid or too large
+	 */
+	public List<Photo> bulkCreate(MultipartFile[] files, String[] titles, String[] descriptions) {
+		if (files == null || files.length == 0) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+					"At least one file must be provided");
+		}
+
+		List<Photo> createdPhotos = new java.util.ArrayList<>();
+
+		for (int i = 0; i < files.length; i++) {
+			MultipartFile file = files[i];
+			
+			// Use provided title or fallback to filename without extension
+			String title = (titles != null && i < titles.length && titles[i] != null && !titles[i].trim().isEmpty()) 
+					? titles[i].trim() 
+					: getFilenameWithoutExtension(file.getOriginalFilename());
+			
+			// Use provided description or null
+			String description = (descriptions != null && i < descriptions.length) ? descriptions[i] : null;
+
+			try {
+				// Validate file size (max 8MB to fit in DB2 BLOB(10M))
+				if (file.getSize() > 8 * 1024 * 1024) {
+					throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+							"File " + file.getOriginalFilename() + " exceeds maximum limit of 8MB");
+				}
+
+				// Validate file type
+				String contentType = file.getContentType();
+				if (contentType == null || !contentType.startsWith("image/")) {
+					throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+							"File " + file.getOriginalFilename() + " is not a valid image file");
+				}
+
+				Photo photo = new Photo();
+				photo.setTitle(title);
+				photo.setDescription(description);
+				photo.setOriginalFilename(file.getOriginalFilename());
+				photo.setContentType(contentType);
+				photo.setSize(file.getSize());
+				photo.setData(file.getBytes());
+
+				createdPhotos.add(photoRepository.save(photo));
+			} catch (IOException e) {
+				throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, 
+						"Failed to process uploaded file " + file.getOriginalFilename() + ": " + e.getMessage());
+			}
+		}
+
+		return createdPhotos;
+	}
+
+	/**
+	 * Helper method to extract filename without extension.
+	 * 
+	 * @param filename Original filename
+	 * @return Filename without extension
+	 */
+	private String getFilenameWithoutExtension(String filename) {
+		if (filename == null) return "Untitled";
+		int lastDotIndex = filename.lastIndexOf('.');
+		return lastDotIndex > 0 ? filename.substring(0, lastDotIndex) : filename;
+	}
+
+	/**
 	 * Update an existing photo.
 	 * 
 	 * @param id Photo ID

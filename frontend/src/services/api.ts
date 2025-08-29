@@ -39,6 +39,13 @@ class ApiService {
     timeout: 60000, // 60 seconds timeout for file uploads
   })
 
+  // Create a completely clean axios instance for file uploads
+  private uploadApi = axios.create({
+    baseURL: API_BASE_URL,
+    timeout: 120000, // 2 minutes timeout for file uploads
+    transformRequest: [(data) => data] // Don't transform FormData
+  })
+
   // Add request interceptor for better error handling
   constructor() {
     this.api.interceptors.response.use(
@@ -105,17 +112,76 @@ class ApiService {
     formData.append('description', description)
     formData.append('file', file)
 
-    const response = await this.api.post('/photos', formData, {
+    // Use axios with proper FormData handling
+    const response = await this.uploadApi.post('/photos', formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        'Content-Type': 'multipart/form-data'
       },
-      onUploadProgress: (progressEvent) => {
-        // You can add upload progress tracking here if needed
-        const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1))
-        console.log(`Upload progress: ${percentCompleted}%`)
-      }
+      transformRequest: (data) => data // Prevent axios from transforming FormData
     })
     return response.data
+  }
+
+  // Bulk create multiple photos
+  async bulkCreatePhotos(
+    files: File[],
+    titles?: string[],
+    descriptions?: string[]
+  ): Promise<Photo[]> {
+    // Validate inputs
+    if (!files || files.length === 0) {
+      throw new Error('No files provided for bulk upload')
+    }
+
+    // Create FormData with only files
+    const formData = new FormData()
+    
+    // Add files - ensure each file is properly appended
+    files.forEach((file, index) => {
+      console.log(`Appending file ${index}:`, file.name, file.type, file.size)
+      formData.append('files', file, file.name)
+    })
+    
+    // Build URL parameters for titles and descriptions
+    const params = new URLSearchParams()
+    
+    // Add titles if provided
+    if (titles && titles.length > 0) {
+      titles.forEach((title) => {
+        if (title && title.trim()) {
+          params.append('titles', title.trim())
+        }
+      })
+    }
+    
+    // Add descriptions if provided
+    if (descriptions && descriptions.length > 0) {
+      descriptions.forEach((description) => {
+        if (description && description.trim()) {
+          params.append('descriptions', description.trim())
+        }
+      })
+    }
+    
+    // Debug: Check FormData contents
+    console.log('FormData entries:')
+    for (const [key, value] of formData.entries()) {
+      if (value instanceof File) {
+        console.log(`${key}:`, value.name, value.type, value.size)
+      } else {
+        console.log(`${key}:`, value)
+      }
+    }
+    
+    // Use axios with proper FormData handling and URL parameters
+    const url = params.toString() ? `/photos/bulk?${params.toString()}` : '/photos/bulk'
+    
+    return this.uploadApi.post(url, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      transformRequest: (data) => data // Prevent axios from transforming FormData
+    })
   }
 
   // Update photo
@@ -132,10 +198,12 @@ class ApiService {
       formData.append('file', file)
     }
 
-    const response = await this.api.put(`/photos/${id}`, formData, {
+    // Use axios with proper FormData handling
+    const response = await this.uploadApi.put(`/photos/${id}`, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
-      }
+        'Content-Type': 'multipart/form-data'
+      },
+      transformRequest: (data) => data // Prevent axios from transforming FormData
     })
     return response.data
   }

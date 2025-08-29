@@ -410,18 +410,22 @@ onMounted(() => {
 
 .current-image-container {
   width: 100%;
-  max-width: 300px;
-  height: 200px;
+  height: auto;
+  max-height: 60vh;
   overflow: hidden;
   background: #f5f5f5;
   border-radius: 8px;
   margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .current-image {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  max-height: 60vh;
+  object-fit: contain;
 }
 
 .image-placeholder {
@@ -712,6 +716,11 @@ onMounted(() => {
   
   .current-image-container {
     max-width: 100%;
+    max-height: 50vh;
+  }
+  
+  .current-image {
+    max-height: 50vh;
   }
 }
 

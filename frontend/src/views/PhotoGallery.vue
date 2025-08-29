@@ -15,6 +15,9 @@
         </div>
       </div>
       <div class="gallery-actions">
+        <button @click="showBulkUpload" class="bulk-upload-btn">
+          📤 Bulk Upload
+        </button>
         <RouterLink to="/upload" class="upload-btn">
           📷 Upload Photos
         </RouterLink>
@@ -123,9 +126,11 @@
 <script setup lang="ts">
 import { onMounted, computed } from 'vue'
 import { usePhotoStore } from '@/stores/photoStore'
+import { useModalStore } from '@/stores/modalStore'
 import PhotoCard from '@/components/PhotoCard.vue'
 
 const photoStore = usePhotoStore()
+const modalStore = useModalStore()
 
 // Computed properties for pagination
 const visiblePageNumbers = computed(() => {
@@ -197,6 +202,20 @@ const goToLastPage = async () => {
   await goToPage(photoStore.totalPages - 1)
 }
 
+// Bulk upload method
+const showBulkUpload = () => {
+  modalStore.showBulkUploadModal(
+    async (files: File[], titles?: string[], descriptions?: string[]) => {
+      await photoStore.bulkAddPhotos(files, titles, descriptions)
+      // Refresh the gallery after bulk upload
+      await loadPhotos()
+    },
+    () => {
+      // Optional cancel callback
+    }
+  )
+}
+
 onMounted(() => {
   loadPhotos()
 })
@@ -245,6 +264,27 @@ onMounted(() => {
 .gallery-actions {
   display: flex;
   gap: 1rem;
+}
+
+.bulk-upload-btn {
+  background: #9b59b6;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 2px 8px rgba(155, 89, 182, 0.2);
+  cursor: pointer;
+}
+
+.bulk-upload-btn:hover {
+  background: #8e44ad;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(155, 89, 182, 0.3);
 }
 
 .upload-btn {
