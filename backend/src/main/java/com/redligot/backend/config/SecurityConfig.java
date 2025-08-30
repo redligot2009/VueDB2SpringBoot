@@ -53,6 +53,11 @@ public class SecurityConfig {
 				.requestMatchers("/api/auth/signup").permitAll()
 				.requestMatchers("/health").permitAll()
 				.requestMatchers("/actuator/**").permitAll()
+				// Swagger UI and OpenAPI documentation
+				.requestMatchers("/swagger-ui/**").permitAll()
+				.requestMatchers("/swagger-ui.html").permitAll()
+				.requestMatchers("/api-docs/**").permitAll()
+				.requestMatchers("/v3/api-docs/**").permitAll()
 				.anyRequest().authenticated()
 			);
 

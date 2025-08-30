@@ -6,6 +6,13 @@ import com.redligot.backend.model.User;
 import com.redligot.backend.security.CustomUserDetails;
 import com.redligot.backend.service.PhotoService;
 import com.redligot.backend.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,6 +33,7 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/api/photos")
+@Tag(name = "Photos", description = "Photo management APIs")
 public class PhotoController {
 
 	private final PhotoService photoService;
@@ -77,9 +85,15 @@ public class PhotoController {
 	 * @return paginated list of {@link Photo} for the authenticated user
 	 */
 	@GetMapping
+	@Operation(summary = "List photos", description = "Get paginated list of photos for the authenticated user")
+	@ApiResponses(value = {
+		@ApiResponse(responseCode = "200", description = "Photos retrieved successfully", 
+					content = @Content(schema = @Schema(implementation = PaginatedPhotoResponse.class))),
+		@ApiResponse(responseCode = "401", description = "Not authenticated")
+	})
 	public PaginatedPhotoResponse list(
-			@RequestParam(defaultValue = "0") int page,
-			@RequestParam(defaultValue = "10") int size,
+			@Parameter(description = "Page number (0-based)", example = "0") @RequestParam(defaultValue = "0") int page,
+			@Parameter(description = "Page size", example = "10") @RequestParam(defaultValue = "10") int size,
 			@AuthenticationPrincipal CustomUserDetails userDetails) {
 		Pageable pageable = PageRequest.of(page, size);
 		Page<Photo> photoPage = photoService.findByUserId(userDetails.getId(), pageable);
@@ -94,7 +108,17 @@ public class PhotoController {
 	 * @return 200 with {@link Photo} if found and owned by authenticated user, otherwise 404 is thrown
 	 */
 	@GetMapping("/{id}")
-	public ResponseEntity<Photo> get(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails userDetails) {
+	@Operation(summary = "Get photo by ID", description = "Get a specific photo by its ID")
+	@ApiResponses(value = {
+		@ApiResponse(responseCode = "200", description = "Photo retrieved successfully", 
+					content = @Content(schema = @Schema(implementation = Photo.class))),
+		@ApiResponse(responseCode = "401", description = "Not authenticated"),
+		@ApiResponse(responseCode = "403", description = "Photo does not belong to user"),
+		@ApiResponse(responseCode = "404", description = "Photo not found")
+	})
+	public ResponseEntity<Photo> get(
+			@Parameter(description = "Photo ID", example = "1") @PathVariable Long id, 
+			@AuthenticationPrincipal CustomUserDetails userDetails) {
 		Photo photo = photoService.findById(id);
 		// Check if the photo belongs to the authenticated user
 		if (!photo.getUser().getId().equals(userDetails.getId())) {
@@ -120,10 +144,17 @@ public class PhotoController {
 	 * @throws IOException when reading the uploaded file fails
 	 */
 	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@Operation(summary = "Upload photo", description = "Upload a single photo with metadata")
+	@ApiResponses(value = {
+		@ApiResponse(responseCode = "200", description = "Photo uploaded successfully", 
+					content = @Content(schema = @Schema(implementation = Photo.class))),
+		@ApiResponse(responseCode = "401", description = "Not authenticated"),
+		@ApiResponse(responseCode = "400", description = "Invalid file or metadata")
+	})
 	public ResponseEntity<Photo> create(
-			@RequestPart("title") String title,
-			@RequestPart(value = "description", required = false) String description,
-			@RequestPart("file") MultipartFile file,
+			@Parameter(description = "Photo title") @RequestPart("title") String title,
+			@Parameter(description = "Photo description (optional)") @RequestPart(value = "description", required = false) String description,
+			@Parameter(description = "Image file") @RequestPart("file") MultipartFile file,
 			@AuthenticationPrincipal CustomUserDetails userDetails) throws IOException {
 		User user = userService.getCurrentUser(userDetails.getId());
 		Photo saved = photoService.create(title, description, file, user);
@@ -146,10 +177,17 @@ public class PhotoController {
 	 * @throws IOException when reading the uploaded files fails
 	 */
 	@PostMapping(path = "/bulk", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@Operation(summary = "Bulk upload photos", description = "Upload multiple photos at once")
+	@ApiResponses(value = {
+		@ApiResponse(responseCode = "200", description = "Photos uploaded successfully", 
+					content = @Content(schema = @Schema(implementation = Photo.class))),
+		@ApiResponse(responseCode = "401", description = "Not authenticated"),
+		@ApiResponse(responseCode = "400", description = "Invalid files or metadata")
+	})
 	public ResponseEntity<List<Photo>> bulkCreate(
-			@RequestPart("files") MultipartFile[] files,
-			@RequestParam(value = "titles", required = false) String[] titles,
-			@RequestParam(value = "descriptions", required = false) String[] descriptions,
+			@Parameter(description = "Array of image files") @RequestPart("files") MultipartFile[] files,
+			@Parameter(description = "Array of titles (optional)") @RequestParam(value = "titles", required = false) String[] titles,
+			@Parameter(description = "Array of descriptions (optional)") @RequestParam(value = "descriptions", required = false) String[] descriptions,
 			@AuthenticationPrincipal CustomUserDetails userDetails) throws IOException {
 		
 		// Debug: Log what we received
@@ -182,11 +220,20 @@ public class PhotoController {
 	 * @throws IOException when reading the uploaded file fails
 	 */
 	@PutMapping(path = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@Operation(summary = "Update photo", description = "Update photo metadata and optionally replace the image file")
+	@ApiResponses(value = {
+		@ApiResponse(responseCode = "200", description = "Photo updated successfully", 
+					content = @Content(schema = @Schema(implementation = Photo.class))),
+		@ApiResponse(responseCode = "401", description = "Not authenticated"),
+		@ApiResponse(responseCode = "403", description = "Photo does not belong to user"),
+		@ApiResponse(responseCode = "404", description = "Photo not found"),
+		@ApiResponse(responseCode = "400", description = "Invalid data")
+	})
 	public ResponseEntity<Photo> update(
-			@PathVariable Long id,
-			@RequestPart("title") String title,
-			@RequestPart(value = "description", required = false) String description,
-			@RequestPart(value = "file", required = false) MultipartFile file,
+			@Parameter(description = "Photo ID", example = "1") @PathVariable Long id,
+			@Parameter(description = "New photo title") @RequestPart("title") String title,
+			@Parameter(description = "New photo description (optional)") @RequestPart(value = "description", required = false) String description,
+			@Parameter(description = "New image file (optional)") @RequestPart(value = "file", required = false) MultipartFile file,
 			@AuthenticationPrincipal CustomUserDetails userDetails) throws IOException {
 		Photo photo = photoService.findById(id);
 		// Check if the photo belongs to the authenticated user
@@ -205,7 +252,16 @@ public class PhotoController {
 	 * @return 204 if deleted and owned by authenticated user, 404 if not found
 	 */
 	@DeleteMapping("/{id}")
-	public ResponseEntity<Void> delete(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails userDetails) {
+	@Operation(summary = "Delete photo", description = "Delete a photo by its ID")
+	@ApiResponses(value = {
+		@ApiResponse(responseCode = "204", description = "Photo deleted successfully"),
+		@ApiResponse(responseCode = "401", description = "Not authenticated"),
+		@ApiResponse(responseCode = "403", description = "Photo does not belong to user"),
+		@ApiResponse(responseCode = "404", description = "Photo not found")
+	})
+	public ResponseEntity<Void> delete(
+			@Parameter(description = "Photo ID", example = "1") @PathVariable Long id, 
+			@AuthenticationPrincipal CustomUserDetails userDetails) {
 		Photo photo = photoService.findById(id);
 		// Check if the photo belongs to the authenticated user
 		if (!photo.getUser().getId().equals(userDetails.getId())) {
@@ -224,8 +280,15 @@ public class PhotoController {
 	 * @return 204 if all photos were deleted successfully
 	 */
 	@DeleteMapping("/bulk")
+	@Operation(summary = "Bulk delete photos", description = "Delete multiple photos by their IDs")
+	@ApiResponses(value = {
+		@ApiResponse(responseCode = "204", description = "Photos deleted successfully"),
+		@ApiResponse(responseCode = "401", description = "Not authenticated"),
+		@ApiResponse(responseCode = "403", description = "One or more photos do not belong to user"),
+		@ApiResponse(responseCode = "404", description = "One or more photos not found")
+	})
 	public ResponseEntity<Void> bulkDelete(
-			@RequestBody List<Long> ids,
+			@Parameter(description = "List of photo IDs to delete") @RequestBody List<Long> ids,
 			@AuthenticationPrincipal CustomUserDetails userDetails) {
 		// Verify all photos belong to the authenticated user
 		for (Long id : ids) {
@@ -248,7 +311,16 @@ public class PhotoController {
 	 * @return selected metadata fields as JSON if owned by authenticated user
 	 */
 	@GetMapping("/{id}/metadata")
-	public ResponseEntity<PhotoService.PhotoMetadata> getMetadata(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails userDetails) {
+	@Operation(summary = "Get photo metadata", description = "Get photo metadata without image bytes")
+	@ApiResponses(value = {
+		@ApiResponse(responseCode = "200", description = "Metadata retrieved successfully"),
+		@ApiResponse(responseCode = "401", description = "Not authenticated"),
+		@ApiResponse(responseCode = "403", description = "Photo does not belong to user"),
+		@ApiResponse(responseCode = "404", description = "Photo not found")
+	})
+	public ResponseEntity<PhotoService.PhotoMetadata> getMetadata(
+			@Parameter(description = "Photo ID", example = "1") @PathVariable Long id, 
+			@AuthenticationPrincipal CustomUserDetails userDetails) {
 		Photo photo = photoService.findById(id);
 		// Check if the photo belongs to the authenticated user
 		if (!photo.getUser().getId().equals(userDetails.getId())) {
@@ -266,7 +338,16 @@ public class PhotoController {
 	 * @return image stream with content type and filename if owned by authenticated user
 	 */
 	@GetMapping("/{id}/file")
-	public ResponseEntity<Resource> download(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails userDetails) {
+	@Operation(summary = "Download photo file", description = "Download the raw image file for a photo")
+	@ApiResponses(value = {
+		@ApiResponse(responseCode = "200", description = "Image file downloaded successfully"),
+		@ApiResponse(responseCode = "401", description = "Not authenticated"),
+		@ApiResponse(responseCode = "403", description = "Photo does not belong to user"),
+		@ApiResponse(responseCode = "404", description = "Photo not found")
+	})
+	public ResponseEntity<Resource> download(
+			@Parameter(description = "Photo ID", example = "1") @PathVariable Long id, 
+			@AuthenticationPrincipal CustomUserDetails userDetails) {
 		Photo photo = photoService.findById(id);
 		// Check if the photo belongs to the authenticated user
 		if (!photo.getUser().getId().equals(userDetails.getId())) {

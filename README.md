@@ -66,6 +66,7 @@ A full-stack photo gallery application with Spring Boot backend and Vue.js front
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:8080
    - Health check: http://localhost:8080/health
+   - **API Documentation**: http://localhost:8080/swagger-ui.html
 
 4. **First-time setup:**
    - Register a new account
@@ -82,8 +83,13 @@ docker compose -f docker-compose.dev.yml up --build
 
 - Frontend (dev): http://localhost:5173
 - Backend API: http://localhost:8080
+- **API Documentation**: http://localhost:8080/swagger-ui.html
 
 ## 🔌 API Endpoints
+
+### Interactive Documentation
+- **Swagger UI**: http://localhost:8080/swagger-ui.html
+- **OpenAPI JSON**: http://localhost:8080/api-docs
 
 ### Authentication
 - `POST /api/auth/register` - User registration
