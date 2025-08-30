@@ -4,6 +4,7 @@ import com.redligot.backend.model.User;
 import com.redligot.backend.payload.JwtAuthenticationResponse;
 import com.redligot.backend.payload.LoginRequest;
 import com.redligot.backend.payload.SignUpRequest;
+import com.redligot.backend.payload.UpdateProfileRequest;
 import com.redligot.backend.repository.UserRepository;
 import com.redligot.backend.security.JwtTokenProvider;
 import com.redligot.backend.security.CustomUserDetails;
@@ -84,5 +85,47 @@ public class AuthController {
         }
         
         return ResponseEntity.ok(user);
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<?> updateProfile(
+            @Valid @RequestBody UpdateProfileRequest updateRequest,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Not authenticated");
+        }
+        
+        User user = userRepository.findById(userDetails.getId())
+                .orElse(null);
+        
+        if (user == null) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+        
+        // Check if username is already taken by another user
+        if (!user.getUsername().equals(updateRequest.getUsername()) && 
+            userRepository.existsByUsername(updateRequest.getUsername())) {
+            return ResponseEntity.badRequest().body("Username is already taken!");
+        }
+        
+        // Check if email is already taken by another user
+        if (!user.getEmail().equals(updateRequest.getEmail()) && 
+            userRepository.existsByEmail(updateRequest.getEmail())) {
+            return ResponseEntity.badRequest().body("Email is already in use!");
+        }
+        
+        // Update user information
+        user.setUsername(updateRequest.getUsername());
+        user.setEmail(updateRequest.getEmail());
+        
+        // Update password only if provided
+        if (updateRequest.getPassword() != null && !updateRequest.getPassword().trim().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(updateRequest.getPassword()));
+        }
+        
+        User updatedUser = userRepository.save(user);
+        
+        return ResponseEntity.ok("Profile updated successfully");
     }
 }

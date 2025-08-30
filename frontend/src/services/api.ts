@@ -258,6 +258,24 @@ class ApiService {
     })
     return response.data
   }
+
+  // Update user profile
+  async updateProfile(username: string, email: string, password?: string): Promise<string> {
+    const updateData: any = {
+      username,
+      email
+    }
+    
+    // Only include password if provided
+    if (password && password.trim()) {
+      updateData.password = password
+    }
+    
+    const response = await this.api.put('/auth/profile', updateData, {
+      headers: this.getAuthHeaders()
+    })
+    return response.data
+  }
 }
 
 export const apiService = new ApiService()

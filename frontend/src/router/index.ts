@@ -5,6 +5,7 @@ import UploadFiles from '@/views/UploadFiles.vue'
 import EditPhoto from '@/views/EditPhoto.vue'
 import Login from '@/views/Login.vue'
 import Signup from '@/views/Signup.vue'
+import Profile from '@/views/Profile.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -42,6 +43,12 @@ const router = createRouter({
       name: 'edit',
       component: EditPhoto,
       props: true,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: Profile,
       meta: { requiresAuth: true }
     }
   ]

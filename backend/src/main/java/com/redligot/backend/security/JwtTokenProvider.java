@@ -22,11 +22,9 @@ public class JwtTokenProvider {
     @Value("${app.jwtExpirationInMs:86400000}")
     private int jwtExpirationInMs;
 
-    // Generate a secure key once and reuse it
-    private final Key signingKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);
-
     private Key getSigningKey() {
-        return signingKey;
+        byte[] keyBytes = jwtSecret.getBytes();
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String generateToken(Authentication authentication) {

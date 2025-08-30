@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { usePhotoStore } from './photoStore'
 import { isTokenExpired, getUserIdFromToken } from '@/utils/jwt'
+import { apiService } from '@/services/api'
 
 export interface User {
   id: number
@@ -77,7 +78,21 @@ export const useAuthStore = defineStore('auth', () => {
     return token.value ? getUserIdFromToken(token.value) : null
   }
 
-
+  const refreshUserData = async () => {
+    try {
+      if (!token.value) {
+        throw new Error('No token available')
+      }
+      
+      const userData = await apiService.getCurrentUser()
+      user.value = userData
+    } catch (error) {
+      console.error('Error refreshing user data:', error)
+      // If we can't refresh user data, logout the user
+      logout()
+      throw error
+    }
+  }
 
   return {
     // State
@@ -90,6 +105,7 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     setUser,
     getAuthHeaders,
-    getCurrentUserId
+    getCurrentUserId,
+    refreshUserData
   }
 })

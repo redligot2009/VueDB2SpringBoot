@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouterLink, RouterView, useRouter } from 'vue-router'
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useModalStore } from '@/stores/modalStore'
 import { useAuthStore } from '@/stores/authStore'
 import DeleteConfirmModal from '@/components/DeleteConfirmModal.vue'
@@ -10,6 +10,20 @@ const router = useRouter()
 const isMenuOpen = ref(false)
 const modalStore = useModalStore()
 const authStore = useAuthStore()
+
+// Initialize user data on app startup if token exists
+onMounted(async () => {
+  if (authStore.isAuthenticated && !authStore.user) {
+    try {
+      await authStore.refreshUserData()
+    } catch (error) {
+      console.error('Failed to restore user data on app startup:', error)
+      // If we can't restore user data, logout the user
+      authStore.logout()
+      router.push('/login')
+    }
+  }
+})
 
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value
@@ -45,6 +59,7 @@ const handleLogout = () => {
           <nav class="app-nav desktop-nav" v-if="authStore.isAuthenticated">
             <RouterLink to="/gallery" class="nav-link" @click="closeMenu">Gallery</RouterLink>
             <RouterLink to="/upload" class="nav-link" @click="closeMenu">Upload</RouterLink>
+            <RouterLink to="/profile" class="nav-link" @click="closeMenu">Profile</RouterLink>
             <div class="user-section">
               <span class="username">{{ authStore.user?.username }}</span>
               <button @click="handleLogout" class="logout-btn">Logout</button>
@@ -56,6 +71,7 @@ const handleLogout = () => {
         <nav class="app-nav mobile-nav" :class="{ 'open': isMenuOpen }" v-if="authStore.isAuthenticated">
           <RouterLink to="/gallery" class="nav-link" @click="closeMenu">Gallery</RouterLink>
           <RouterLink to="/upload" class="nav-link" @click="closeMenu">Upload</RouterLink>
+          <RouterLink to="/profile" class="nav-link" @click="closeMenu">Profile</RouterLink>
           <div class="mobile-user-section">
             <span class="username">{{ authStore.user?.username }}</span>
             <button @click="handleLogout" class="logout-btn">Logout</button>
