@@ -130,7 +130,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
+import { onMounted, computed, watch } from 'vue'
 import { usePhotoStore } from '@/stores/photoStore'
 import { useModalStore } from '@/stores/modalStore'
 import PhotoCard from '@/components/PhotoCard.vue'
@@ -160,7 +160,10 @@ const visiblePageNumbers = computed(() => {
 
 const loadPhotos = async () => {
   try {
+    console.log('🔄 PhotoGallery: Starting to load photos...')
     await photoStore.fetchPhotos()
+    console.log('🔄 PhotoGallery: Photos loaded, hasPhotos:', photoStore.hasPhotos)
+    console.log('🔄 PhotoGallery: Photos count:', photoStore.photoCount)
   } catch (error) {
     console.error('Failed to load photos:', error)
   }
@@ -221,6 +224,11 @@ const showBulkUpload = () => {
     }
   )
 }
+
+// Watch for changes in photos array
+watch(() => photoStore.photos, (newPhotos) => {
+  console.log('👀 PhotoGallery: Photos array changed:', newPhotos?.length)
+}, { deep: true })
 
 onMounted(() => {
   loadPhotos()

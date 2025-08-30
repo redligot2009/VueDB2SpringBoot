@@ -28,6 +28,8 @@ public class PhotoService {
 
 	/**
 	 * Retrieve all photos from the database.
+	 * Note: This method returns all photos regardless of user ownership.
+	 * Use {@link #findByUserId(Long, Pageable)} for user-specific photos.
 	 * 
 	 * @return List of all photos
 	 */
@@ -37,12 +39,26 @@ public class PhotoService {
 
 	/**
 	 * Retrieve all photos from the database with pagination support.
+	 * Note: This method returns all photos regardless of user ownership.
+	 * Use {@link #findByUserId(Long, Pageable)} for user-specific photos.
 	 * 
 	 * @param pageable pagination parameters
 	 * @return Page of photos
 	 */
 	public Page<Photo> findAll(Pageable pageable) {
 		return photoRepository.findAll(pageable);
+	}
+
+	/**
+	 * Retrieve all photos for a specific user with pagination support.
+	 * This method is used to filter photos by user ownership for security.
+	 * 
+	 * @param userId The user ID to filter photos by
+	 * @param pageable pagination parameters
+	 * @return Page of photos belonging to the specified user
+	 */
+	public Page<Photo> findByUserId(Long userId, Pageable pageable) {
+		return photoRepository.findByUserId(userId, pageable);
 	}
 
 	/**
@@ -60,14 +76,16 @@ public class PhotoService {
 
 	/**
 	 * Create a new photo from uploaded file and metadata.
+	 * The photo will be associated with the specified user for ownership tracking.
 	 * 
 	 * @param title Photo title
 	 * @param description Photo description (optional)
 	 * @param file Uploaded image file
-	 * @return The created photo
+	 * @param user The user who owns the photo (required for authentication)
+	 * @return The created photo with user association
 	 * @throws ResponseStatusException if file is invalid or too large
 	 */
-	public Photo create(String title, String description, MultipartFile file) {
+	public Photo create(String title, String description, MultipartFile file, com.redligot.backend.model.User user) {
 		try {
 			// Validate file size (max 8MB to fit in DB2 BLOB(10M))
 			if (file.getSize() > 8 * 1024 * 1024) {
@@ -89,6 +107,7 @@ public class PhotoService {
 			photo.setContentType(contentType);
 			photo.setSize(file.getSize());
 			photo.setData(file.getBytes());
+			photo.setUser(user);
 
 			return photoRepository.save(photo);
 		} catch (IOException e) {
@@ -99,14 +118,16 @@ public class PhotoService {
 
 	/**
 	 * Bulk create multiple photos from uploaded files and metadata.
+	 * All photos will be associated with the specified user for ownership tracking.
 	 * 
 	 * @param files Array of uploaded image files
 	 * @param titles Array of titles (optional, will use filename if not provided)
 	 * @param descriptions Array of descriptions (optional)
-	 * @return List of created photos
+	 * @param user The user who owns the photos (required for authentication)
+	 * @return List of created photos with user association
 	 * @throws ResponseStatusException if any file is invalid or too large
 	 */
-	public List<Photo> bulkCreate(MultipartFile[] files, String[] titles, String[] descriptions) {
+	public List<Photo> bulkCreate(MultipartFile[] files, String[] titles, String[] descriptions, com.redligot.backend.model.User user) {
 		if (files == null || files.length == 0) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
 					"At least one file must be provided");
@@ -146,6 +167,7 @@ public class PhotoService {
 				photo.setContentType(contentType);
 				photo.setSize(file.getSize());
 				photo.setData(file.getBytes());
+				photo.setUser(user);
 
 				createdPhotos.add(photoRepository.save(photo));
 			} catch (IOException e) {

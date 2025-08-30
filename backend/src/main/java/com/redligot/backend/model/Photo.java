@@ -1,17 +1,13 @@
 package com.redligot.backend.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * Photo entity representing an uploaded image with metadata.
+ * Each photo is associated with a user for ownership and security purposes.
  */
 @Entity
 @Table(name = "photos")
@@ -52,10 +48,17 @@ public class Photo {
 	/**
 	 * Raw image bytes stored directly in the database.
 	 * Using BLOB for DB2 compatibility with explicit size.
+	 * Excluded from JSON serialization to prevent massive responses.
 	 */
 	@Lob
 	@Column(columnDefinition = "BLOB(10M)")
+	@JsonIgnore
 	private byte[] data;
+	
+	            @ManyToOne(fetch = FetchType.LAZY)
+            @JoinColumn(name = "user_id", nullable = false)
+            @JsonIgnore
+            private User user;
 
 	public Long getId() {
 		return id;
@@ -111,5 +114,13 @@ public class Photo {
 
 	public void setData(byte[] data) {
 		this.data = data;
+	}
+	
+	public User getUser() {
+		return user;
+	}
+	
+	public void setUser(User user) {
+		this.user = user;
 	}
 }

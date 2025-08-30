@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useAuthStore, type User } from '@/stores/authStore'
 
 // Use environment variable for API URL, fallback to localhost for development
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
@@ -10,7 +11,7 @@ export interface Photo {
   originalFilename?: string
   contentType?: string
   size?: number
-  data?: string // base64 encoded image data
+  // data field removed - will be fetched separately when needed
 }
 
 export interface PhotoMetadata {
@@ -46,6 +47,12 @@ class ApiService {
     transformRequest: [(data) => data] // Don't transform FormData
   })
 
+  // Add authentication headers to requests
+  private getAuthHeaders() {
+    const authStore = useAuthStore()
+    return authStore.getAuthHeaders()
+  }
+
   // Add request interceptor for better error handling
   constructor() {
     this.api.interceptors.response.use(
@@ -75,28 +82,36 @@ class ApiService {
 
   // Get all photos with pagination (metadata only)
   async getAllPhotos(page: number = 0, size: number = 10): Promise<PaginatedResponse<Photo>> {
+    console.log('🌐 Making API call to /photos with auth headers:', this.getAuthHeaders())
     const response = await this.api.get('/photos', {
-      params: { page, size }
+      params: { page, size },
+      headers: this.getAuthHeaders()
     })
+    console.log('📡 API response received:', response.data)
     return response.data
   }
 
   // Get photo by ID (metadata only)
   async getPhotoById(id: number): Promise<Photo> {
-    const response = await this.api.get(`/photos/${id}`)
+    const response = await this.api.get(`/photos/${id}`, {
+      headers: this.getAuthHeaders()
+    })
     return response.data
   }
 
   // Get photo metadata only
   async getPhotoMetadata(id: number): Promise<PhotoMetadata> {
-    const response = await this.api.get(`/photos/${id}/metadata`)
+    const response = await this.api.get(`/photos/${id}/metadata`, {
+      headers: this.getAuthHeaders()
+    })
     return response.data
   }
 
   // Get photo image data
   async getPhotoImage(id: number): Promise<Blob> {
     const response = await this.api.get(`/photos/${id}/file`, {
-      responseType: 'blob'
+      responseType: 'blob',
+      headers: this.getAuthHeaders()
     })
     return response.data
   }
@@ -115,7 +130,8 @@ class ApiService {
     // Use axios with proper FormData handling
     const response = await this.uploadApi.post('/photos', formData, {
       headers: {
-        'Content-Type': 'multipart/form-data'
+        'Content-Type': 'multipart/form-data',
+        ...this.getAuthHeaders()
       },
       transformRequest: (data) => data // Prevent axios from transforming FormData
     })
@@ -178,7 +194,8 @@ class ApiService {
     
     return this.uploadApi.post(url, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data'
+        'Content-Type': 'multipart/form-data',
+        ...this.getAuthHeaders()
       },
       transformRequest: (data) => data // Prevent axios from transforming FormData
     })
@@ -201,7 +218,8 @@ class ApiService {
     // Use axios with proper FormData handling
     const response = await this.uploadApi.put(`/photos/${id}`, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data'
+        'Content-Type': 'multipart/form-data',
+        ...this.getAuthHeaders()
       },
       transformRequest: (data) => data // Prevent axios from transforming FormData
     })
@@ -210,7 +228,35 @@ class ApiService {
 
   // Delete photo
   async deletePhoto(id: number): Promise<void> {
-    await this.api.delete(`/photos/${id}`)
+    await this.api.delete(`/photos/${id}`, {
+      headers: this.getAuthHeaders()
+    })
+  }
+
+  // Authentication methods
+  async login(usernameOrEmail: string, password: string): Promise<{ accessToken: string }> {
+    const response = await this.api.post('/auth/signin', {
+      usernameOrEmail,
+      password
+    })
+    return response.data
+  }
+
+  async signup(username: string, email: string, password: string): Promise<string> {
+    const response = await this.api.post('/auth/signup', {
+      username,
+      email,
+      password
+    })
+    return response.data
+  }
+
+  // Get current user information
+  async getCurrentUser(): Promise<User> {
+    const response = await this.api.get('/auth/me', {
+      headers: this.getAuthHeaders()
+    })
+    return response.data
   }
 }
 

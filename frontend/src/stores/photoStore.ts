@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { apiService, type Photo, type PaginatedResponse } from '@/services/api'
+import { useAuthStore } from './authStore'
 
 export const usePhotoStore = defineStore('photo', () => {
   // State
@@ -15,8 +16,12 @@ export const usePhotoStore = defineStore('photo', () => {
   const totalPages = ref(0)
 
   // Computed properties
-  const hasPhotos = computed(() => photos.value.length > 0)
-  const photoCount = computed(() => photos.value.length)
+  const hasPhotos = computed(() => {
+    const hasPhotosValue = photos.value?.length > 0
+    console.log('🔍 hasPhotos computed - photos length:', photos.value?.length, 'hasPhotos:', hasPhotosValue)
+    return hasPhotosValue
+  })
+  const photoCount = computed(() => photos.value?.length || 0)
   const totalPhotoCount = computed(() => totalElements.value)
   
   // Pagination computed properties
@@ -27,19 +32,58 @@ export const usePhotoStore = defineStore('photo', () => {
 
   // Actions
   const fetchPhotos = async (page: number = 0, size: number = 10) => {
+    // Check if user is authenticated before making API call
+    const authStore = useAuthStore()
+    if (!authStore.isAuthenticated) {
+      console.warn('User not authenticated, skipping photo fetch')
+      return
+    }
+    
+    console.log('🔍 Fetching photos with authentication...')
+    console.log('Auth headers:', authStore.getAuthHeaders())
+    console.log('User ID:', authStore.getCurrentUserId())
+    
     loading.value = true
     error.value = null
     
     try {
       const response: PaginatedResponse<Photo> = await apiService.getAllPhotos(page, size)
-      photos.value = response.content
-      currentPage.value = response.number
-      pageSize.value = response.size
-      totalElements.value = response.totalElements
-      totalPages.value = response.totalPages
+      console.log('✅ Photos fetched successfully:', response)
+      console.log('📊 Response type:', typeof response)
+      
+      // Response should now be a clean object from the backend
+      const parsedResponse = response
+      
+      console.log('📊 Response keys:', Object.keys(parsedResponse || {}))
+      console.log('📊 Response content length:', parsedResponse?.content?.length)
+      console.log('📊 Response content:', parsedResponse?.content)
+      
+      // Ensure we're accessing the correct properties
+      const content = parsedResponse?.content || []
+      const responseNumber = parsedResponse?.number || 0
+      const responseSize = parsedResponse?.size || 10
+      const responseTotalElements = parsedResponse?.totalElements || 0
+      const responseTotalPages = parsedResponse?.totalPages || 0
+      
+      console.log('📊 Extracted content:', content)
+      console.log('📊 Extracted content length:', content?.length)
+      
+      photos.value = content
+      currentPage.value = responseNumber
+      pageSize.value = responseSize
+      totalElements.value = responseTotalElements
+      totalPages.value = responseTotalPages
+      console.log('📊 Photos store updated:', photos.value)
+      console.log('📊 Has photos:', photos.value?.length > 0)
     } catch (err) {
+      console.error('❌ Error fetching photos:', err)
       error.value = err instanceof Error ? err.message : 'Failed to fetch photos'
-      console.error('Error fetching photos:', err)
+      // Reset to safe defaults on error
+      photos.value = []
+      currentPage.value = 0
+      pageSize.value = 10
+      totalElements.value = 0
+      totalPages.value = 0
     } finally {
       loading.value = false
     }
@@ -173,6 +217,16 @@ export const usePhotoStore = defineStore('photo', () => {
     error.value = null
   }
 
+  const clearStore = () => {
+    photos.value = []
+    loading.value = false
+    error.value = null
+    currentPage.value = 0
+    pageSize.value = 10
+    totalElements.value = 0
+    totalPages.value = 0
+  }
+
   return {
     // State
     photos,
@@ -201,6 +255,7 @@ export const usePhotoStore = defineStore('photo', () => {
     bulkAddPhotos,
     updatePhoto,
     deletePhoto,
-    clearError
+    clearError,
+    clearStore
   }
 })

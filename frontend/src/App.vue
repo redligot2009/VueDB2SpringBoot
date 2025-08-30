@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { ref } from 'vue'
 import { useModalStore } from '@/stores/modalStore'
+import { useAuthStore } from '@/stores/authStore'
 import DeleteConfirmModal from '@/components/DeleteConfirmModal.vue'
 import BulkUploadModal from '@/components/BulkUploadModal.vue'
 
+const router = useRouter()
 const isMenuOpen = ref(false)
 const modalStore = useModalStore()
+const authStore = useAuthStore()
 
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value
@@ -14,6 +17,13 @@ const toggleMenu = () => {
 
 const closeMenu = () => {
   isMenuOpen.value = false
+}
+
+const handleLogout = () => {
+  authStore.logout()
+  closeMenu()
+  // Redirect to login page after logout
+  router.push('/login')
 }
 </script>
 
@@ -32,16 +42,24 @@ const closeMenu = () => {
           </button>
 
           <!-- Desktop navigation -->
-          <nav class="app-nav desktop-nav">
-            <RouterLink to="/" class="nav-link" @click="closeMenu">Gallery</RouterLink>
+          <nav class="app-nav desktop-nav" v-if="authStore.isAuthenticated">
+            <RouterLink to="/gallery" class="nav-link" @click="closeMenu">Gallery</RouterLink>
             <RouterLink to="/upload" class="nav-link" @click="closeMenu">Upload</RouterLink>
+            <div class="user-section">
+              <span class="username">{{ authStore.user?.username }}</span>
+              <button @click="handleLogout" class="logout-btn">Logout</button>
+            </div>
           </nav>
         </div>
 
         <!-- Mobile navigation -->
-        <nav class="app-nav mobile-nav" :class="{ 'open': isMenuOpen }">
-          <RouterLink to="/" class="nav-link" @click="closeMenu">Gallery</RouterLink>
+        <nav class="app-nav mobile-nav" :class="{ 'open': isMenuOpen }" v-if="authStore.isAuthenticated">
+          <RouterLink to="/gallery" class="nav-link" @click="closeMenu">Gallery</RouterLink>
           <RouterLink to="/upload" class="nav-link" @click="closeMenu">Upload</RouterLink>
+          <div class="mobile-user-section">
+            <span class="username">{{ authStore.user?.username }}</span>
+            <button @click="handleLogout" class="logout-btn">Logout</button>
+          </div>
         </nav>
       </div>
     </header>
@@ -233,6 +251,57 @@ body {
 .mobile-nav .nav-link:hover {
   border-color: rgba(37, 99, 235, 0.2);
   z-index: 1;
+}
+
+/* User section styles */
+.user-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: 2rem;
+}
+
+.username {
+  color: #374151;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.logout-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.logout-btn:hover {
+  background: #dc2626;
+}
+
+.mobile-user-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  margin-top: 0.5rem;
+}
+
+.mobile-user-section .username {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.mobile-user-section .logout-btn {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
 }
 
 /* Main content */
