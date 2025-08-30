@@ -250,6 +250,23 @@ public class PhotoService {
 	}
 
 	/**
+	 * Bulk delete multiple photos by their IDs.
+	 * 
+	 * @param ids List of photo IDs to delete
+	 * @throws ResponseStatusException if any photo not found
+	 */
+	public void bulkDeleteByIds(List<Long> ids) {
+		// Verify all photos exist before deleting
+		for (Long id : ids) {
+			if (!photoRepository.existsById(id)) {
+				throw new ResponseStatusException(HttpStatus.NOT_FOUND, 
+						"Photo with ID " + id + " not found");
+			}
+		}
+		photoRepository.deleteAllById(ids);
+	}
+
+	/**
 	 * Get photo metadata without the image data.
 	 * 
 	 * @param id Photo ID

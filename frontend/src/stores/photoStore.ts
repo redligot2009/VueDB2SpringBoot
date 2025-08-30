@@ -213,6 +213,27 @@ export const usePhotoStore = defineStore('photo', () => {
     }
   }
 
+  const bulkDeletePhotos = async (ids: number[]) => {
+    loading.value = true
+    error.value = null
+    
+    try {
+      await apiService.bulkDeletePhotos(ids)
+      // Remove the deleted photos from the current list
+      photos.value = photos.value.filter(p => !ids.includes(p.id))
+      
+      // If we're on the last page and it becomes empty, go to the previous page
+      if (photos.value.length === 0 && !isFirstPage.value) {
+        await fetchPreviousPage()
+      }
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to delete photos'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   const clearError = () => {
     error.value = null
   }
@@ -255,6 +276,7 @@ export const usePhotoStore = defineStore('photo', () => {
     bulkAddPhotos,
     updatePhoto,
     deletePhoto,
+    bulkDeletePhotos,
     clearError,
     clearStore
   }

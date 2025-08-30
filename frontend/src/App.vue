@@ -124,7 +124,8 @@ body {
   flex-direction: column;
   margin: 0;
   padding: 0;
-  width: 100%;
+  width: 100vw;
+  max-width: 100%;
 }
 
 /* Header styles */
@@ -140,8 +141,9 @@ body {
 
 .header-wrapper {
   position: relative;
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
 }
 
 .header-content {
@@ -326,8 +328,10 @@ body {
   padding: 2rem 0;
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(5px);
-  margin: 0 1rem;
-  border-radius: 12px;
+  margin: 0;
+  width: 100%;
+  max-width: 100%;
+  border-radius: 0;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
@@ -336,11 +340,14 @@ body {
   #app {
     margin: 0;
     padding: 0;
-    width: 100%;
+    width: 100vw;
+    max-width: 100%;
   }
   
   .header-wrapper {
     margin: 0;
+    width: 100%;
+    max-width: 100%;
   }
   
   .header-content {
@@ -375,7 +382,8 @@ body {
   #app {
     margin: 0;
     padding: 0;
-    width: 100%;
+    width: 100vw;
+    max-width: 100%;
   }
   
   .header-content {

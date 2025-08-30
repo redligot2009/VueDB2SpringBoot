@@ -233,6 +233,14 @@ class ApiService {
     })
   }
 
+  // Bulk delete photos
+  async bulkDeletePhotos(ids: number[]): Promise<void> {
+    await this.api.delete('/photos/bulk', {
+      headers: this.getAuthHeaders(),
+      data: ids
+    })
+  }
+
   // Authentication methods
   async login(usernameOrEmail: string, password: string): Promise<{ accessToken: string }> {
     const response = await this.api.post('/auth/signin', {

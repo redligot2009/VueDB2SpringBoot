@@ -216,6 +216,31 @@ public class PhotoController {
 	}
 
 	/**
+	 * Bulk delete multiple photos by their ids.
+	 * Users can only delete their own photos.
+	 *
+	 * @param ids list of photo identifiers
+	 * @param userDetails authenticated user details
+	 * @return 204 if all photos were deleted successfully
+	 */
+	@DeleteMapping("/bulk")
+	public ResponseEntity<Void> bulkDelete(
+			@RequestBody List<Long> ids,
+			@AuthenticationPrincipal CustomUserDetails userDetails) {
+		// Verify all photos belong to the authenticated user
+		for (Long id : ids) {
+			Photo photo = photoService.findById(id);
+			if (!photo.getUser().getId().equals(userDetails.getId())) {
+				return ResponseEntity.status(403).build();
+			}
+		}
+		
+		// Delete all photos
+		photoService.bulkDeleteByIds(ids);
+		return ResponseEntity.noContent().build();
+	}
+
+	/**
 	 * Fetch only the photo metadata (no image bytes) by id.
 	 * Users can only access their own photos.
 	 *

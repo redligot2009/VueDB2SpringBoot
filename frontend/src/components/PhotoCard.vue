@@ -1,5 +1,16 @@
 <template>
-  <div class="photo-card">
+  <div class="photo-card" :class="{ 'selected': isSelected }">
+    <!-- Selection checkbox -->
+    <div class="selection-overlay" v-if="showSelection">
+      <input 
+        type="checkbox" 
+        :checked="isSelected"
+        @change="toggleSelection"
+        class="selection-checkbox"
+        :aria-label="`Select ${photo.title}`"
+      />
+    </div>
+    
     <div class="photo-image-container">
       <img 
         v-if="imageUrl" 
@@ -46,9 +57,18 @@ import { useModalStore } from '@/stores/modalStore'
 
 interface Props {
   photo: Photo
+  showSelection?: boolean
+  isSelected?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  showSelection: false,
+  isSelected: false
+})
+
+const emit = defineEmits<{
+  toggleSelection: [photoId: number]
+}>()
 const photoStore = usePhotoStore()
 const modalStore = useModalStore()
 
@@ -94,6 +114,10 @@ const showDeleteModal = () => {
   )
 }
 
+const toggleSelection = () => {
+  emit('toggleSelection', props.photo.id)
+}
+
 onMounted(() => {
   loadImage()
 })
@@ -109,6 +133,29 @@ onMounted(() => {
   height: fit-content;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+.photo-card.selected {
+  border: 2px solid #2563eb;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+}
+
+.selection-overlay {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  padding: 4px;
+}
+
+.selection-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #2563eb;
 }
 
 .photo-card:hover {
