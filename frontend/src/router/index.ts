@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import PhotoGallery from '@/views/PhotoGallery.vue'
+import PhotoView from '@/views/PhotoView.vue'
 import UploadFiles from '@/views/UploadFiles.vue'
 import EditPhoto from '@/views/EditPhoto.vue'
 import Login from '@/views/Login.vue'
@@ -42,6 +43,13 @@ const router = createRouter({
       path: '/edit/:id',
       name: 'edit',
       component: EditPhoto,
+      props: true,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/photo/:id',
+      name: 'photo',
+      component: PhotoView,
       props: true,
       meta: { requiresAuth: true }
     },

@@ -46,7 +46,9 @@ const handleLogout = () => {
     <header class="app-header">
       <div class="header-wrapper">
         <div class="header-content">
-          <h1 class="app-title">Photo Gallery</h1>
+          <RouterLink to="/gallery" class="app-title-link">
+            <h1 class="app-title">Photo Gallery</h1>
+          </RouterLink>
           
           <!-- Mobile menu button -->
           <button class="mobile-menu-btn" @click="toggleMenu" :class="{ 'active': isMenuOpen }">
@@ -154,6 +156,17 @@ body {
   gap: 2rem;
   position: relative;
   z-index: 1001;
+}
+
+.app-title-link {
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.3s ease;
+}
+
+.app-title-link:hover {
+  transform: translateY(-1px);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .app-title {

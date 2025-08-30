@@ -37,6 +37,9 @@
         </span>
       </div>
              <div class="photo-actions">
+         <RouterLink :to="`/photo/${photo.id}`" class="view-btn">
+           <font-awesome-icon icon="fa-solid fa-eye" /> View
+         </RouterLink>
          <RouterLink :to="`/edit/${photo.id}`" class="edit-btn">
            <font-awesome-icon icon="fa-solid fa-edit" /> Edit
          </RouterLink>
@@ -240,6 +243,28 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   margin-top: auto;
+}
+
+.view-btn {
+  background: #059669;
+  color: white;
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  justify-content: center;
+}
+
+.view-btn:hover {
+  background: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
 }
 
 .edit-btn {
