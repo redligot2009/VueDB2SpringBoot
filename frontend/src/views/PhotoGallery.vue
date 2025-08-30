@@ -558,7 +558,10 @@ onMounted(() => {
 
 @media (max-width: 768px) {
   .photo-gallery {
-    margin: 0 0.5rem;
+    margin: 0;
+    border-radius: 0;
+    max-width: 100%;
+    width: 100%;
   }
   
   .gallery-content {
@@ -580,7 +583,9 @@ onMounted(() => {
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 1.5rem;
     padding: 0 0 1.5rem 0;
-    max-width: 90vw;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
   }
   
   .upload-btn {
@@ -620,7 +625,10 @@ onMounted(() => {
 
 @media (max-width: 480px) {
   .photo-gallery {
-    margin: 0 0.25rem;
+    margin: 0;
+    border-radius: 0;
+    max-width: 100%;
+    width: 100%;
   }
   
   .gallery-content {
@@ -646,7 +654,9 @@ onMounted(() => {
   .photo-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
-    max-width: 95vw;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
   }
   
   .pagination-section {

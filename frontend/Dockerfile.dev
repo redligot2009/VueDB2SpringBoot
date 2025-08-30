@@ -4,6 +4,10 @@ FROM node:20-alpine
 # Set working directory
 WORKDIR /app
 
+# Set environment variables for hot reload
+ENV CHOKIDAR_USEPOLLING=true
+ENV WATCHPACK_POLLING=true
+
 # Copy package files
 COPY package*.json ./
 
