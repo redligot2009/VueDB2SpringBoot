@@ -2,12 +2,17 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { usePhotoStore } from './photoStore'
 import { isTokenExpired, getUserIdFromToken } from '@/utils/jwt'
-import { apiService } from '@/services/api'
+import { apiService, type UserProfile } from '@/services/api'
 
 export interface User {
   id: number
   username: string
   email: string
+}
+
+// Extended user interface for profile data
+export interface UserWithProfile extends User {
+  hasProfilePicture?: boolean
 }
 
 export interface AuthState {
@@ -19,7 +24,9 @@ export interface AuthState {
 export const useAuthStore = defineStore('auth', () => {
   // State
   const user = ref<User | null>(null)
+  const userProfile = ref<UserProfile | null>(null)
   const token = ref<string | null>(localStorage.getItem('token'))
+  const profilePictureUpdateTime = ref<number>(Date.now())
 
   // Computed
   const isAuthenticated = computed(() => {
@@ -85,7 +92,16 @@ export const useAuthStore = defineStore('auth', () => {
       }
       
       const userData = await apiService.getCurrentUser()
-      user.value = userData
+      // Store full profile data
+      userProfile.value = userData
+      // Convert UserProfile to User for backward compatibility
+      user.value = {
+        id: userData.id,
+        username: userData.username,
+        email: userData.email
+      }
+      // Update the profile picture update timestamp
+      profilePictureUpdateTime.value = Date.now()
     } catch (error) {
       console.error('Error refreshing user data:', error)
       // If we can't refresh user data, logout the user
@@ -97,7 +113,9 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     // State
     user,
+    userProfile,
     token,
+    profilePictureUpdateTime,
     // Computed
     isAuthenticated,
     // Actions

@@ -5,9 +5,10 @@ import org.springframework.data.web.config.EnableSpringDataWebSupport;
 
 /**
  * Web configuration for Spring Data pagination support.
- * This enables proper pagination serialization and suppresses warnings.
+ * This enables proper pagination serialization.
  */
 @Configuration
 @EnableSpringDataWebSupport
 public class WebConfig {
+    // Spring Boot auto-configuration will handle multipart support
 }

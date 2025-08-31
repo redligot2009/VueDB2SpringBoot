@@ -3,6 +3,7 @@ package com.redligot.backend.payload;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * DTO for updating user profile information.
@@ -19,6 +20,8 @@ public class UpdateProfileRequest {
     
     @Size(min = 6, max = 100, message = "Password must be between 6 and 100 characters")
     private String password; // Optional - only update if provided
+    
+    private MultipartFile profilePicture; // Optional - only update if provided
     
     // Default constructor
     public UpdateProfileRequest() {}
@@ -53,5 +56,13 @@ public class UpdateProfileRequest {
     
     public void setPassword(String password) {
         this.password = password;
+    }
+    
+    public MultipartFile getProfilePicture() {
+        return profilePicture;
+    }
+    
+    public void setProfilePicture(MultipartFile profilePicture) {
+        this.profilePicture = profilePicture;
     }
 }

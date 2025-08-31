@@ -34,6 +34,16 @@ export interface PaginatedResponse<T> {
   numberOfElements: number
 }
 
+export interface UserProfile {
+  id: number
+  username: string
+  email: string
+  hasProfilePicture?: boolean
+  profilePictureFilename?: string
+  profilePictureContentType?: string
+  profilePictureSize?: number
+}
+
 class ApiService {
   private api = axios.create({
     baseURL: API_BASE_URL,
@@ -269,18 +279,84 @@ class ApiService {
 
   // Update user profile
   async updateProfile(username: string, email: string, password?: string): Promise<string> {
-    const updateData: any = {
-      username,
-      email
-    }
+    // Create empty FormData (no profile picture)
+    const formData = new FormData()
+    
+    // Build URL parameters for form fields
+    const params = new URLSearchParams()
+    params.append('username', username)
+    params.append('email', email)
     
     // Only include password if provided
     if (password && password.trim()) {
-      updateData.password = password
+      params.append('password', password)
     }
     
-    const response = await this.api.put('/auth/profile', updateData, {
-      headers: this.getAuthHeaders()
+    // Use axios with proper FormData handling and URL parameters
+    const url = `/auth/profile?${params.toString()}`
+    
+    const response = await this.api.put(url, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        ...this.getAuthHeaders()
+      },
+      transformRequest: (data) => data // Prevent axios from transforming FormData
+    })
+    return response.data
+  }
+
+  // Get user profile picture
+  async getProfilePicture(): Promise<Blob> {
+    const response = await this.api.get('/auth/profile-picture', {
+      headers: this.getAuthHeaders(),
+      responseType: 'blob'
+    })
+    return response.data
+  }
+
+
+
+  // Update user profile with picture
+  async updateProfileWithPicture(username: string, email: string, password?: string, profilePicture?: File | null): Promise<string> {
+    // Create FormData with only the file
+    const formData = new FormData()
+    
+    // Only include profile picture if provided
+    if (profilePicture) {
+      console.log('Appending profile picture:', profilePicture.name, profilePicture.type, profilePicture.size)
+      formData.append('profilePicture', profilePicture, profilePicture.name)
+    }
+    
+    // Build URL parameters for form fields
+    const params = new URLSearchParams()
+    params.append('username', username)
+    params.append('email', email)
+    
+    // Only include password if provided
+    if (password && password.trim()) {
+      params.append('password', password)
+    }
+    
+    // Debug: Check FormData contents
+    console.log('🔍 Profile update FormData contents:')
+    for (const [key, value] of formData.entries()) {
+      if (value instanceof File) {
+        console.log(`${key}:`, value.name, value.type, value.size)
+      } else {
+        console.log(`${key}:`, value)
+      }
+    }
+    console.log('🔍 URL params:', params.toString())
+    
+    // Use axios with proper FormData handling and URL parameters
+    const url = `/auth/profile?${params.toString()}`
+    
+    const response = await this.api.put(url, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        ...this.getAuthHeaders()
+      },
+      transformRequest: (data) => data // Prevent axios from transforming FormData
     })
     return response.data
   }

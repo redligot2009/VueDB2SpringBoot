@@ -1,15 +1,24 @@
 <script setup lang="ts">
 import { RouterLink, RouterView, useRouter } from 'vue-router'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useModalStore } from '@/stores/modalStore'
 import { useAuthStore } from '@/stores/authStore'
 import DeleteConfirmModal from '@/components/DeleteConfirmModal.vue'
 import BulkUploadModal from '@/components/BulkUploadModal.vue'
+import UserAvatar from '@/components/UserAvatar.vue'
 
 const router = useRouter()
 const isMenuOpen = ref(false)
 const modalStore = useModalStore()
 const authStore = useAuthStore()
+
+// Avatar key for forcing re-render when profile picture changes
+const avatarKey = ref(0)
+
+// Watch for changes in profile picture update time to force avatar re-render
+watch(() => authStore.profilePictureUpdateTime, () => {
+  avatarKey.value++
+})
 
 // Initialize user data on app startup if token exists
 onMounted(async () => {
@@ -63,6 +72,12 @@ const handleLogout = () => {
             <RouterLink to="/upload" class="nav-link" @click="closeMenu">Upload</RouterLink>
             <RouterLink to="/profile" class="nav-link" @click="closeMenu">Profile</RouterLink>
             <div class="user-section">
+              <UserAvatar 
+                :key="`menu-avatar-${avatarKey}`"
+                :username="authStore.user?.username || ''" 
+                :has-profile-picture="authStore.userProfile?.hasProfilePicture || false"
+                size="small"
+              />
               <span class="username">{{ authStore.user?.username }}</span>
               <button @click="handleLogout" class="logout-btn">Logout</button>
             </div>
@@ -75,6 +90,12 @@ const handleLogout = () => {
           <RouterLink to="/upload" class="nav-link" @click="closeMenu">Upload</RouterLink>
           <RouterLink to="/profile" class="nav-link" @click="closeMenu">Profile</RouterLink>
           <div class="mobile-user-section">
+            <UserAvatar 
+              :key="`mobile-menu-avatar-${avatarKey}`"
+              :username="authStore.user?.username || ''" 
+              :has-profile-picture="authStore.userProfile?.hasProfilePicture || false"
+              size="small"
+            />
             <span class="username">{{ authStore.user?.username }}</span>
             <button @click="handleLogout" class="logout-btn">Logout</button>
           </div>
@@ -288,7 +309,7 @@ body {
 .user-section {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   margin-left: 2rem;
 }
 
@@ -322,6 +343,10 @@ body {
   padding: 1rem;
   border-top: 1px solid rgba(0, 0, 0, 0.1);
   margin-top: 0.5rem;
+}
+
+.mobile-user-section .user-avatar {
+  margin-bottom: 0.5rem;
 }
 
 .mobile-user-section .username {

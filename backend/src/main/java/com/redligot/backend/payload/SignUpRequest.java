@@ -3,8 +3,7 @@ package com.redligot.backend.payload;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-
-import java.util.Set;
+import org.springframework.web.multipart.MultipartFile;
 
 public class SignUpRequest {
     @NotBlank
@@ -19,6 +18,8 @@ public class SignUpRequest {
     @NotBlank
     @Size(min = 6, max = 40)
     private String password;
+
+    private MultipartFile profilePicture;
 
     public String getUsername() {
         return username;
@@ -42,5 +43,13 @@ public class SignUpRequest {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public MultipartFile getProfilePicture() {
+        return profilePicture;
+    }
+
+    public void setProfilePicture(MultipartFile profilePicture) {
+        this.profilePicture = profilePicture;
     }
 }

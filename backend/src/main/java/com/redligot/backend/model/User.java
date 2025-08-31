@@ -45,6 +45,20 @@ public class User {
     @JsonIgnore
     private List<Photo> photos;
 
+    @Column(name = "profile_picture_filename")
+    private String profilePictureFilename;
+
+    @Column(name = "profile_picture_content_type")
+    private String profilePictureContentType;
+
+    @Column(name = "profile_picture_size")
+    private Long profilePictureSize;
+
+    @Lob
+    @Column(name = "profile_picture_data")
+    @JsonIgnore
+    private byte[] profilePictureData;
+
     // Default constructor
     public User() {
         this.createdAt = LocalDateTime.now();
@@ -114,6 +128,38 @@ public class User {
 
     public void setPhotos(List<Photo> photos) {
         this.photos = photos;
+    }
+
+    public String getProfilePictureFilename() {
+        return profilePictureFilename;
+    }
+
+    public void setProfilePictureFilename(String profilePictureFilename) {
+        this.profilePictureFilename = profilePictureFilename;
+    }
+
+    public String getProfilePictureContentType() {
+        return profilePictureContentType;
+    }
+
+    public void setProfilePictureContentType(String profilePictureContentType) {
+        this.profilePictureContentType = profilePictureContentType;
+    }
+
+    public Long getProfilePictureSize() {
+        return profilePictureSize;
+    }
+
+    public void setProfilePictureSize(Long profilePictureSize) {
+        this.profilePictureSize = profilePictureSize;
+    }
+
+    public byte[] getProfilePictureData() {
+        return profilePictureData;
+    }
+
+    public void setProfilePictureData(byte[] profilePictureData) {
+        this.profilePictureData = profilePictureData;
     }
 
     @PreUpdate

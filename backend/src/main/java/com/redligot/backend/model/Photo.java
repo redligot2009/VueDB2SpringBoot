@@ -54,11 +54,11 @@ public class Photo {
 	@Column(columnDefinition = "BLOB(10M)")
 	@JsonIgnore
 	private byte[] data;
-	
-	            @ManyToOne(fetch = FetchType.LAZY)
-            @JoinColumn(name = "user_id", nullable = false)
-            @JsonIgnore
-            private User user;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "user_id", nullable = false)
+	@JsonIgnore
+	private User user;
 
 	public Long getId() {
 		return id;
@@ -115,11 +115,11 @@ public class Photo {
 	public void setData(byte[] data) {
 		this.data = data;
 	}
-	
+
 	public User getUser() {
 		return user;
 	}
-	
+
 	public void setUser(User user) {
 		this.user = user;
 	}

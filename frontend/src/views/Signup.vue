@@ -9,56 +9,28 @@
       <form @submit.prevent="handleSignup" class="signup-form">
         <div class="form-group">
           <label for="username">Username</label>
-          <input
-            id="username"
-            v-model="form.username"
-            type="text"
-            required
-            minlength="3"
-            maxlength="50"
-            placeholder="Choose a username (3-50 characters)"
-            :disabled="isLoading"
-          />
+          <input id="username" v-model="form.username" type="text" required minlength="3" maxlength="50"
+            placeholder="Choose a username (3-50 characters)" :disabled="isLoading" />
           <span class="help-text">Must be between 3 and 50 characters</span>
         </div>
 
         <div class="form-group">
           <label for="email">Email</label>
-          <input
-            id="email"
-            v-model="form.email"
-            type="email"
-            required
-            placeholder="Enter your email address"
-            :disabled="isLoading"
-          />
+          <input id="email" v-model="form.email" type="email" required placeholder="Enter your email address"
+            :disabled="isLoading" />
         </div>
 
         <div class="form-group">
           <label for="password">Password</label>
-          <input
-            id="password"
-            v-model="form.password"
-            type="password"
-            required
-            minlength="6"
-            maxlength="40"
-            placeholder="Create a password (6-40 characters)"
-            :disabled="isLoading"
-          />
+          <input id="password" v-model="form.password" type="password" required minlength="6" maxlength="40"
+            placeholder="Create a password (6-40 characters)" :disabled="isLoading" />
           <span class="help-text">Must be between 6 and 40 characters</span>
         </div>
 
         <div class="form-group">
           <label for="confirmPassword">Confirm Password</label>
-          <input
-            id="confirmPassword"
-            v-model="form.confirmPassword"
-            type="password"
-            required
-            placeholder="Confirm your password"
-            :disabled="isLoading"
-          />
+          <input id="confirmPassword" v-model="form.confirmPassword" type="password" required
+            placeholder="Confirm your password" :disabled="isLoading" />
         </div>
 
         <div v-if="error" class="error-message">
@@ -103,6 +75,8 @@ const form = reactive({
   confirmPassword: ''
 })
 
+
+
 const isFormValid = computed(() => {
   return (
     form.username.length >= 3 &&
@@ -114,6 +88,8 @@ const isFormValid = computed(() => {
   )
 })
 
+
+
 const handleSignup = async () => {
   if (isLoading.value || !isFormValid.value) return
 
@@ -123,9 +99,9 @@ const handleSignup = async () => {
 
   try {
     await apiService.signup(form.username, form.email, form.password)
-    
+
     success.value = 'Account created successfully! Redirecting to login...'
-    
+
     // Redirect to login after a short delay
     setTimeout(() => {
       router.push('/login')
@@ -272,8 +248,13 @@ const handleSignup = async () => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .signup-footer {
@@ -300,11 +281,71 @@ const handleSignup = async () => {
   text-decoration: underline;
 }
 
+/* File upload styles */
+.file-upload-container {
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  transition: border-color 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.file-upload-container:hover {
+  border-color: #667eea;
+}
+
+.file-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.file-upload-placeholder {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.file-upload-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.preview-image {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 2px solid #e5e7eb;
+}
+
+.remove-picture-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.remove-picture-btn:hover {
+  background: #dc2626;
+}
+
 @media (max-width: 480px) {
   .signup-card {
     padding: 2rem 1.5rem;
   }
-  
+
   .signup-header h1 {
     font-size: 1.5rem;
   }
