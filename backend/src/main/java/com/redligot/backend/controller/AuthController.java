@@ -120,14 +120,13 @@ public class AuthController {
         // Create UserProfile DTO with profile picture information
         boolean hasProfilePicture = user.getProfilePictureData() != null && user.getProfilePictureData().length > 0;
         UserProfile userProfile = new UserProfile(
-            user.getId(),
-            user.getUsername(),
-            user.getEmail(),
-            hasProfilePicture,
-            user.getProfilePictureFilename(),
-            user.getProfilePictureContentType(),
-            user.getProfilePictureSize()
-        );
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                hasProfilePicture,
+                user.getProfilePictureFilename(),
+                user.getProfilePictureContentType(),
+                user.getProfilePictureSize());
 
         return ResponseEntity.ok(userProfile);
     }
@@ -161,17 +160,8 @@ public class AuthController {
     }
 
     @PutMapping("/profile")
-    @Operation(
-        summary = "Update user profile", 
-        description = "Update the current user's profile information and optional profile picture. Form fields (username, email, password) are sent as URL parameters, while the profile picture is sent as multipart form data."
-    )
-    @io.swagger.v3.oas.annotations.parameters.RequestBody(
-        description = "Profile picture file (optional)",
-        content = @Content(
-            mediaType = "multipart/form-data",
-            schema = @Schema(type = "string", format = "binary")
-        )
-    )
+    @Operation(summary = "Update user profile", description = "Update the current user's profile information and optional profile picture. Form fields (username, email, password) are sent as URL parameters, while the profile picture is sent as multipart form data.")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Profile picture file (optional)", content = @Content(mediaType = "multipart/form-data", schema = @Schema(type = "string", format = "binary")))
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Profile updated successfully"),
             @ApiResponse(responseCode = "401", description = "Not authenticated"),
@@ -179,14 +169,10 @@ public class AuthController {
             @ApiResponse(responseCode = "404", description = "User not found")
     })
     public ResponseEntity<?> updateProfile(
-            @Parameter(description = "New username (3-50 characters)", required = true)
-            @RequestParam("username") String username,
-            @Parameter(description = "New email address", required = true)
-            @RequestParam("email") String email,
-            @Parameter(description = "New password (6-100 characters, optional - leave blank to keep current)")
-            @RequestParam(value = "password", required = false) String password,
-            @Parameter(description = "Profile picture file (optional - JPG, PNG, GIF, WebP, max 5MB)")
-            @RequestPart(value = "profilePicture", required = false) MultipartFile profilePicture,
+            @Parameter(description = "New username (3-50 characters)", required = true) @RequestParam("username") String username,
+            @Parameter(description = "New email address", required = true) @RequestParam("email") String email,
+            @Parameter(description = "New password (6-100 characters, optional - leave blank to keep current)") @RequestParam(value = "password", required = false) String password,
+            @Parameter(description = "Profile picture file (optional - JPG, PNG, GIF, WebP, max 5MB)") @RequestPart(value = "profilePicture", required = false) MultipartFile profilePicture,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         if (userDetails == null) {
@@ -222,58 +208,72 @@ public class AuthController {
         }
 
         // Debug logging for profile picture
-        logger.info("Profile update request - username: {}, email: {}, password provided: {}, profilePicture: {}", 
-                   username, email, (password != null && !password.trim().isEmpty()), 
-                   (profilePicture != null ? profilePicture.getOriginalFilename() : "null"));
-        
+        logger.info("Profile update request - username: {}, email: {}, password provided: {}, profilePicture: {}",
+                username, email, (password != null && !password.trim().isEmpty()),
+                (profilePicture != null ? profilePicture.getOriginalFilename() : "null"));
+
         if (profilePicture != null) {
-            logger.info("Profile picture details - filename: {}, size: {}, content type: {}", 
-                       profilePicture.getOriginalFilename(), profilePicture.getSize(), profilePicture.getContentType());
+            logger.info("Profile picture details - filename: {}, size: {}, content type: {}",
+                    profilePicture.getOriginalFilename(), profilePicture.getSize(), profilePicture.getContentType());
         }
-        
-                    // Handle profile picture
-            if (profilePicture == null) {
-                // Remove profile picture
+
+        // Handle profile picture
+        if (profilePicture == null) {
+            // No profile picture parameter sent - keep existing profile picture unchanged
+            logger.info("No profile picture parameter sent - keeping existing profile picture unchanged");
+        } else if (profilePicture.isEmpty()) {
+            // Check if this is a removal indicator
+            String filename = profilePicture.getOriginalFilename();
+            if (filename != null && filename.equals("REMOVE_PROFILE_PICTURE")) {
+                // Remove profile picture (removal indicator provided)
                 user.setProfilePictureData(null);
                 user.setProfilePictureFilename(null);
                 user.setProfilePictureContentType(null);
                 user.setProfilePictureSize(null);
-                logger.info("Profile picture removed (null provided)");
-            } else if (!profilePicture.isEmpty()) {
-                // New profile picture provided
-                try {
-                    user.setProfilePictureFilename(profilePicture.getOriginalFilename());
-                    user.setProfilePictureContentType(profilePicture.getContentType());
-                    user.setProfilePictureSize(profilePicture.getSize());
-                    user.setProfilePictureData(profilePicture.getBytes());
-                    logger.info("Profile picture saved successfully - {} bytes", profilePicture.getSize());
-                } catch (Exception e) {
-                    logger.error("Error processing profile picture: {}", e.getMessage(), e);
-                    return ResponseEntity.badRequest().body("Error processing profile picture: " + e.getMessage());
-                }
+                logger.info("Profile picture removed (removal indicator provided)");
             } else {
-                logger.info("Empty profile picture provided - keeping existing");
+                // Empty file provided but not removal indicator - keep existing
+                logger.info("Empty profile picture provided - keeping existing profile picture unchanged");
             }
+        } else {
+            // New profile picture provided
+            try {
+                user.setProfilePictureFilename(profilePicture.getOriginalFilename());
+                user.setProfilePictureContentType(profilePicture.getContentType());
+                user.setProfilePictureSize(profilePicture.getSize());
+                user.setProfilePictureData(profilePicture.getBytes());
+                logger.info("Profile picture saved successfully - {} bytes", profilePicture.getSize());
+            } catch (Exception e) {
+                logger.error("Error processing profile picture: {}", e.getMessage(), e);
+                return ResponseEntity.badRequest().body("Error processing profile picture: " + e.getMessage());
+            }
+        }
 
         User updatedUser = userRepository.save(user);
 
         // Build descriptive response message
         StringBuilder responseMessage = new StringBuilder("Profile updated successfully");
-        
+
         if (profilePicture != null && !profilePicture.isEmpty()) {
             responseMessage.append(" with new profile picture: ")
-                         .append(profilePicture.getOriginalFilename())
-                         .append(" (")
-                         .append(profilePicture.getSize())
-                         .append(" bytes, ")
-                         .append(profilePicture.getContentType())
-                         .append(")");
-        } else if (profilePicture == null) {
-            responseMessage.append(" (profile picture removed)");
+                    .append(profilePicture.getOriginalFilename())
+                    .append(" (")
+                    .append(profilePicture.getSize())
+                    .append(" bytes, ")
+                    .append(profilePicture.getContentType())
+                    .append(")");
+        } else if (profilePicture != null && profilePicture.isEmpty()) {
+            // Check if this was a removal request
+            String filename = profilePicture.getOriginalFilename();
+            if (filename != null && filename.equals("REMOVE_PROFILE_PICTURE")) {
+                responseMessage.append(" (profile picture removed)");
+            } else {
+                responseMessage.append(" (no profile picture changes)");
+            }
         } else {
             responseMessage.append(" (no profile picture changes)");
         }
-        
+
         responseMessage.append(". Updated fields: username, email");
         if (password != null && !password.trim().isEmpty()) {
             responseMessage.append(", password");

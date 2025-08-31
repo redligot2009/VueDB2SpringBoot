@@ -279,7 +279,7 @@ class ApiService {
 
   // Update user profile
   async updateProfile(username: string, email: string, password?: string): Promise<string> {
-    // Create empty FormData (no profile picture)
+    // Create empty FormData (no profile picture parameter at all)
     const formData = new FormData()
     
     // Build URL parameters for form fields
@@ -291,6 +291,9 @@ class ApiService {
     if (password && password.trim()) {
       params.append('password', password)
     }
+    
+    // Note: No profilePicture parameter is added to FormData
+    // This indicates "no profile picture change"
     
     // Use axios with proper FormData handling and URL parameters
     const url = `/auth/profile?${params.toString()}`
@@ -321,10 +324,15 @@ class ApiService {
     // Create FormData with only the file
     const formData = new FormData()
     
-    // Only include profile picture if provided
+    // Always include profilePicture parameter to indicate intent
     if (profilePicture) {
       console.log('Appending profile picture:', profilePicture.name, profilePicture.type, profilePicture.size)
       formData.append('profilePicture', profilePicture, profilePicture.name)
+    } else {
+      // Create an empty file with special filename to indicate profile picture removal
+      console.log('Appending removal indicator for profile picture')
+      const emptyFile = new File([''], 'REMOVE_PROFILE_PICTURE', { type: 'text/plain' })
+      formData.append('profilePicture', emptyFile, 'REMOVE_PROFILE_PICTURE')
     }
     
     // Build URL parameters for form fields
