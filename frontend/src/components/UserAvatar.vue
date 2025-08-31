@@ -69,12 +69,6 @@ const handleImageError = () => {
 // Track if we've already loaded the profile picture
 let hasLoadedProfilePicture = false
 
-// Load profile picture on mount
-onMounted(async () => {
-  await loadProfilePicture(props.username, props.hasProfilePicture)
-  hasLoadedProfilePicture = true
-})
-
 // Watch for prop changes and reload if necessary
 watch(() => [props.username, props.hasProfilePicture], async (newValues, oldValues) => {
   const [newUsername, newHasProfilePicture] = newValues as [string, boolean]
@@ -100,7 +94,7 @@ watch(() => [props.username, props.hasProfilePicture], async (newValues, oldValu
     hasLoadedProfilePicture = true
     console.log('✅ Profile picture reloaded')
   }
-}, { immediate: false })
+}, { immediate: true })
 
 // Clean up on unmount
 onUnmounted(() => {

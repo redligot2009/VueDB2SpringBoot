@@ -185,6 +185,7 @@
 import { onMounted, onUnmounted, computed, watch, ref } from 'vue'
 import { usePhotoStore } from '@/stores/photoStore'
 import { useModalStore } from '@/stores/modalStore'
+import { useAuthStore } from '@/stores/authStore'
 import PhotoCard from '@/components/PhotoCard.vue'
 
 // Bulk selection state
@@ -196,6 +197,7 @@ const selectedPageSize = ref<number>(10)
 
 const photoStore = usePhotoStore()
 const modalStore = useModalStore()
+const authStore = useAuthStore()
 
 // Computed properties for pagination
 const visiblePageNumbers = computed(() => {
@@ -349,6 +351,16 @@ watch(() => photoStore.photos, (newPhotos) => {
 
 
 onMounted(async () => {
+  // First, ensure user profile data is loaded (this will update the profile picture timestamp)
+  if (authStore.isAuthenticated && !authStore.userProfile) {
+    try {
+      await authStore.refreshUserData()
+    } catch (error) {
+      console.error('Failed to load user profile data:', error)
+    }
+  }
+  
+  // Then load photos
   await loadPhotos()
 })
 </script>
