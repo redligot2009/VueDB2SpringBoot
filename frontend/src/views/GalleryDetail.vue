@@ -406,6 +406,7 @@ watch(() => route.params.id, async () => {
 
 .gallery-actions {
     display: flex;
+    padding: 1rem;
     gap: 0.5rem;
     flex-wrap: wrap;
     justify-content: center;
@@ -823,7 +824,6 @@ watch(() => route.params.id, async () => {
 
     .gallery-actions {
         justify-content: center;
-        padding: 1rem;
     }
 
     .photo-grid {
