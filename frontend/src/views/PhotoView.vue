@@ -79,27 +79,42 @@ const hasNextPhoto = computed(() => currentPhotoIndex.value < totalPhotos.value 
 const loadPhoto = async () => {
   const photoId = parseInt(route.params.id as string)
   if (isNaN(photoId)) {
-    router.push('/gallery')
+    goBack()
     return
   }
 
   try {
-    // Find photo in store or fetch if needed
+    // First try to find photo in store
     const foundPhoto = photoStore.photos.find(p => p.id === photoId)
     if (foundPhoto) {
       photo.value = foundPhoto
       currentPhotoIndex.value = photoStore.photos.findIndex(p => p.id === photoId)
       totalPhotos.value = photoStore.photoCount
-
-      // Load the image data
-      await loadImage(photoId)
     } else {
-      // If photo not in store, redirect to gallery
-      router.push('/gallery')
+      // If photo not in store, fetch it directly from API
+      try {
+        const fetchedPhoto = await apiService.getPhotoById(photoId)
+        photo.value = fetchedPhoto
+        // Set navigation context based on photo's gallery
+        if (fetchedPhoto.galleryId) {
+          currentPhotoIndex.value = 0 // We don't have the full context
+          totalPhotos.value = 1 // We only have this one photo
+        } else {
+          currentPhotoIndex.value = 0
+          totalPhotos.value = 1
+        }
+      } catch (fetchError) {
+        console.error('Failed to fetch photo:', fetchError)
+        goBack()
+        return
+      }
     }
+
+    // Load the image data
+    await loadImage(photoId)
   } catch (error) {
     console.error('Failed to load photo:', error)
-    router.push('/gallery')
+    goBack()
   }
 }
 
@@ -116,20 +131,32 @@ const loadImage = async (photoId: number) => {
 
 // Navigation
 const goBack = () => {
-  router.push('/gallery')
+  // Check if we have a return path from query params
+  const returnPath = route.query.return as string
+  if (returnPath) {
+    router.push(returnPath)
+  } else {
+    // Default fallback - check if photo has galleryId to go back to specific gallery
+    if (photo.value?.galleryId) {
+      router.push(`/gallery/${photo.value.galleryId}`)
+    } else {
+      // Fallback to photos page
+      router.push('/photos')
+    }
+  }
 }
 
 const previousPhoto = async () => {
-  if (hasPreviousPhoto.value) {
+  if (hasPreviousPhoto.value && photoStore.photos.length > 0) {
     const prevPhoto = photoStore.photos[currentPhotoIndex.value - 1]
-    router.push(`/photo/${prevPhoto.id}`)
+    router.push(`/photo/${prevPhoto.id}?return=${encodeURIComponent(route.fullPath)}`)
   }
 }
 
 const nextPhoto = async () => {
-  if (hasNextPhoto.value) {
+  if (hasNextPhoto.value && photoStore.photos.length > 0) {
     const nextPhoto = photoStore.photos[currentPhotoIndex.value + 1]
-    router.push(`/photo/${nextPhoto.id}`)
+    router.push(`/photo/${nextPhoto.id}?return=${encodeURIComponent(route.fullPath)}`)
   }
 }
 

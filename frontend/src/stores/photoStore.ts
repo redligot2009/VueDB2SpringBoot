@@ -14,6 +14,9 @@ export const usePhotoStore = defineStore('photo', () => {
   const pageSize = ref(10)
   const totalElements = ref(0)
   const totalPages = ref(0)
+  
+  // Gallery filtering state
+  const currentGalleryId = ref<number | undefined>(undefined)
 
   // Computed properties
   const hasPhotos = computed(() => {
@@ -31,7 +34,7 @@ export const usePhotoStore = defineStore('photo', () => {
   const isLastPage = computed(() => currentPage.value === totalPages.value - 1)
 
   // Actions
-  const fetchPhotos = async (page: number = 0, size: number = 10) => {
+  const fetchPhotos = async (page: number = 0, size: number = 10, galleryId?: number) => {
     // Check if user is authenticated before making API call
     const authStore = useAuthStore()
     if (!authStore.isAuthenticated) {
@@ -42,12 +45,13 @@ export const usePhotoStore = defineStore('photo', () => {
     console.log('🔍 Fetching photos with authentication...')
     console.log('Auth headers:', authStore.getAuthHeaders())
     console.log('User ID:', authStore.getCurrentUserId())
+    console.log('Gallery ID:', galleryId)
     
     loading.value = true
     error.value = null
     
     try {
-      const response: PaginatedResponse<Photo> = await apiService.getAllPhotos(page, size)
+      const response: PaginatedResponse<Photo> = await apiService.getAllPhotos(page, size, galleryId)
       console.log('✅ Photos fetched successfully:', response)
       console.log('📊 Response type:', typeof response)
       
@@ -73,6 +77,7 @@ export const usePhotoStore = defineStore('photo', () => {
       pageSize.value = responseSize
       totalElements.value = responseTotalElements
       totalPages.value = responseTotalPages
+      currentGalleryId.value = galleryId
       console.log('📊 Photos store updated:', photos.value)
       console.log('📊 Has photos:', photos.value?.length > 0)
     } catch (err) {
@@ -91,23 +96,23 @@ export const usePhotoStore = defineStore('photo', () => {
 
   const fetchNextPage = async () => {
     if (hasNextPage.value) {
-      await fetchPhotos(currentPage.value + 1, pageSize.value)
+      await fetchPhotos(currentPage.value + 1, pageSize.value, currentGalleryId.value)
     }
   }
 
   const fetchPreviousPage = async () => {
     if (hasPreviousPage.value) {
-      await fetchPhotos(currentPage.value - 1, pageSize.value)
+      await fetchPhotos(currentPage.value - 1, pageSize.value, currentGalleryId.value)
     }
   }
 
   const goToPage = async (page: number) => {
     if (page >= 0 && page < totalPages.value) {
-      await fetchPhotos(page, pageSize.value)
+      await fetchPhotos(page, pageSize.value, currentGalleryId.value)
     }
   }
 
-  const addPhoto = async (title: string, description: string, file: File) => {
+  const addPhoto = async (title: string, description: string, file: File, galleryId?: number) => {
     // Client-side validation
     if (file.size > 8 * 1024 * 1024) {
       throw new Error('File size exceeds maximum limit of 8MB')
@@ -121,9 +126,9 @@ export const usePhotoStore = defineStore('photo', () => {
     error.value = null
     
     try {
-      const newPhoto = await apiService.createPhoto(title, description, file)
+      const newPhoto = await apiService.createPhoto(title, description, file, galleryId)
       // Refresh the current page to show the new photo
-      await fetchPhotos(currentPage.value, pageSize.value)
+      await fetchPhotos(currentPage.value, pageSize.value, currentGalleryId.value)
       return newPhoto
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to add photo'
@@ -133,7 +138,7 @@ export const usePhotoStore = defineStore('photo', () => {
     }
   }
 
-  const bulkAddPhotos = async (files: File[], titles?: string[], descriptions?: string[]) => {
+  const bulkAddPhotos = async (files: File[], titles?: string[], descriptions?: string[], galleryId?: number) => {
     // Client-side validation for all files
     for (const file of files) {
       if (file.size > 8 * 1024 * 1024) {
@@ -149,9 +154,9 @@ export const usePhotoStore = defineStore('photo', () => {
     error.value = null
     
     try {
-      const newPhotos = await apiService.bulkCreatePhotos(files, titles, descriptions)
+      const newPhotos = await apiService.bulkCreatePhotos(files, titles, descriptions, galleryId)
       // Refresh the current page to show the new photos
-      await fetchPhotos(currentPage.value, pageSize.value)
+      await fetchPhotos(currentPage.value, pageSize.value, currentGalleryId.value)
       return newPhotos
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to add photos'
@@ -161,7 +166,7 @@ export const usePhotoStore = defineStore('photo', () => {
     }
   }
 
-  const updatePhoto = async (id: number, title: string, description: string, file?: File) => {
+  const updatePhoto = async (id: number, title: string, description: string, file?: File, galleryId?: number) => {
     // Client-side validation for file if provided
     if (file) {
       if (file.size > 8 * 1024 * 1024) {
@@ -177,7 +182,7 @@ export const usePhotoStore = defineStore('photo', () => {
     error.value = null
     
     try {
-      const updatedPhoto = await apiService.updatePhoto(id, title, description, file)
+      const updatedPhoto = await apiService.updatePhoto(id, title, description, file, galleryId)
       // Update the photo in the current list
       const index = photos.value.findIndex(p => p.id === id)
       if (index !== -1) {

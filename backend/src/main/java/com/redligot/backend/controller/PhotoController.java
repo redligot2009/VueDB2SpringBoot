@@ -94,9 +94,10 @@ public class PhotoController {
 	public PaginatedPhotoResponse list(
 			@Parameter(description = "Page number (0-based)", example = "0") @RequestParam(defaultValue = "0") int page,
 			@Parameter(description = "Page size", example = "10") @RequestParam(defaultValue = "10") int size,
+			@Parameter(description = "Gallery ID (optional - null for unorganized photos)") @RequestParam(required = false) Long galleryId,
 			@AuthenticationPrincipal CustomUserDetails userDetails) {
 		Pageable pageable = PageRequest.of(page, size);
-		Page<Photo> photoPage = photoService.findByUserId(userDetails.getId(), pageable);
+		Page<Photo> photoPage = photoService.findByUserIdAndGalleryId(userDetails.getId(), galleryId, pageable);
 		return PaginatedPhotoResponse.fromPage(photoPage);
 	}
 
@@ -111,12 +112,12 @@ public class PhotoController {
 	@Operation(summary = "Get photo by ID", description = "Get a specific photo by its ID")
 	@ApiResponses(value = {
 		@ApiResponse(responseCode = "200", description = "Photo retrieved successfully", 
-					content = @Content(schema = @Schema(implementation = Photo.class))),
+					content = @Content(schema = @Schema(implementation = PhotoDto.class))),
 		@ApiResponse(responseCode = "401", description = "Not authenticated"),
 		@ApiResponse(responseCode = "403", description = "Photo does not belong to user"),
 		@ApiResponse(responseCode = "404", description = "Photo not found")
 	})
-	public ResponseEntity<Photo> get(
+	public ResponseEntity<PhotoDto> get(
 			@Parameter(description = "Photo ID", example = "1") @PathVariable Long id, 
 			@AuthenticationPrincipal CustomUserDetails userDetails) {
 		Photo photo = photoService.findById(id);
@@ -124,7 +125,7 @@ public class PhotoController {
 		if (!photo.getUser().getId().equals(userDetails.getId())) {
 			return ResponseEntity.status(403).build();
 		}
-		return ResponseEntity.ok(photo);
+		return ResponseEntity.ok(new PhotoDto(photo));
 	}
 
 	/**
@@ -155,9 +156,10 @@ public class PhotoController {
 			@Parameter(description = "Photo title") @RequestPart("title") String title,
 			@Parameter(description = "Photo description (optional)") @RequestPart(value = "description", required = false) String description,
 			@Parameter(description = "Image file") @RequestPart("file") MultipartFile file,
+			@Parameter(description = "Gallery ID (optional)") @RequestParam(value = "galleryId", required = false) Long galleryId,
 			@AuthenticationPrincipal CustomUserDetails userDetails) throws IOException {
 		User user = userService.getCurrentUser(userDetails.getId());
-		Photo saved = photoService.create(title, description, file, user);
+		Photo saved = photoService.create(title, description, file, user, galleryId);
 		return ResponseEntity.ok(saved);
 	}
 
@@ -188,6 +190,7 @@ public class PhotoController {
 			@Parameter(description = "Array of image files") @RequestPart("files") MultipartFile[] files,
 			@Parameter(description = "Array of titles (optional)") @RequestParam(value = "titles", required = false) String[] titles,
 			@Parameter(description = "Array of descriptions (optional)") @RequestParam(value = "descriptions", required = false) String[] descriptions,
+			@Parameter(description = "Gallery ID (optional)") @RequestParam(value = "galleryId", required = false) Long galleryId,
 			@AuthenticationPrincipal CustomUserDetails userDetails) throws IOException {
 		
 		// Debug: Log what we received
@@ -204,7 +207,7 @@ public class PhotoController {
 		}
 		
 		User user = userService.getCurrentUser(userDetails.getId());
-		List<Photo> savedPhotos = photoService.bulkCreate(files, titles, descriptions, user);
+		List<Photo> savedPhotos = photoService.bulkCreate(files, titles, descriptions, user, galleryId);
 		return ResponseEntity.ok(savedPhotos);
 	}
 
@@ -234,13 +237,14 @@ public class PhotoController {
 			@Parameter(description = "New photo title") @RequestPart("title") String title,
 			@Parameter(description = "New photo description (optional)") @RequestPart(value = "description", required = false) String description,
 			@Parameter(description = "New image file (optional)") @RequestPart(value = "file", required = false) MultipartFile file,
+			@Parameter(description = "Gallery ID (optional)") @RequestParam(value = "galleryId", required = false) Long galleryId,
 			@AuthenticationPrincipal CustomUserDetails userDetails) throws IOException {
 		Photo photo = photoService.findById(id);
 		// Check if the photo belongs to the authenticated user
 		if (!photo.getUser().getId().equals(userDetails.getId())) {
 			return ResponseEntity.status(403).build();
 		}
-		Photo updated = photoService.update(id, title, description, file);
+		Photo updated = photoService.update(id, title, description, file, galleryId);
 		return ResponseEntity.ok(updated);
 	}
 

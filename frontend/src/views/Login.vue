@@ -94,7 +94,7 @@ const handleLogin = async () => {
     authStore.login(user, response.accessToken)
     
     // Redirect to photo gallery
-    router.push('/gallery')
+    router.push('/photos')
   } catch (err: any) {
     console.error('Login error:', err)
     error.value = err.response?.data || err.message || 'Login failed. Please try again.'

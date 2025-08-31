@@ -13,6 +13,8 @@ public class PhotoDto {
     private String originalFilename;
     private String contentType;
     private Long size;
+    private Long userId;
+    private Long galleryId;
 
     public PhotoDto() {}
 
@@ -23,6 +25,8 @@ public class PhotoDto {
         this.originalFilename = photo.getOriginalFilename();
         this.contentType = photo.getContentType();
         this.size = photo.getSize();
+        this.userId = photo.getUser().getId();
+        this.galleryId = photo.getGallery() != null ? photo.getGallery().getId() : null;
     }
 
     // Getters and Setters
@@ -72,5 +76,21 @@ public class PhotoDto {
 
     public void setSize(Long size) {
         this.size = size;
+    }
+    
+    public Long getUserId() {
+        return userId;
+    }
+    
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+    
+    public Long getGalleryId() {
+        return galleryId;
+    }
+    
+    public void setGalleryId(Long galleryId) {
+        this.galleryId = galleryId;
     }
 }

@@ -13,7 +13,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/gallery'
+      redirect: '/photos'
     },
     {
       path: '/login',
@@ -28,9 +28,22 @@ const router = createRouter({
       meta: { requiresGuest: true }
     },
     {
-      path: '/gallery',
-      name: 'gallery',
+      path: '/photos',
+      name: 'photos',
       component: PhotoGallery,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/galleries',
+      name: 'galleries',
+      component: () => import('@/views/Galleries.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/gallery/:id',
+      name: 'gallery-detail',
+      component: () => import('@/views/GalleryDetail.vue'),
+      props: true,
       meta: { requiresAuth: true }
     },
     {
@@ -75,7 +88,7 @@ router.beforeEach((to, from, next) => {
 
   // Routes that require guest (not authenticated)
   if (to.meta.requiresGuest && isAuthenticated) {
-    next('/gallery')
+    next('/photos')
     return
   }
 

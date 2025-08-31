@@ -37,10 +37,10 @@
         </span>
       </div>
              <div class="photo-actions">
-         <RouterLink :to="`/photo/${photo.id}`" class="view-btn">
+         <RouterLink :to="`/photo/${photo.id}?return=${encodeURIComponent(route.fullPath)}`" class="view-btn">
            <font-awesome-icon icon="fa-solid fa-eye" /> View
          </RouterLink>
-         <RouterLink :to="`/edit/${photo.id}`" class="edit-btn">
+         <RouterLink :to="`/edit/${photo.id}?return=${encodeURIComponent(route.fullPath)}`" class="edit-btn">
            <font-awesome-icon icon="fa-solid fa-edit" /> Edit
          </RouterLink>
          <button @click="showDeleteModal" class="delete-btn">
@@ -53,7 +53,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import { apiService, type Photo } from '@/services/api'
 import { usePhotoStore } from '@/stores/photoStore'
 import { useModalStore } from '@/stores/modalStore'
@@ -72,6 +72,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   toggleSelection: [photoId: number]
 }>()
+const route = useRoute()
 const photoStore = usePhotoStore()
 const modalStore = useModalStore()
 

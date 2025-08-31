@@ -19,6 +19,17 @@ A full-stack photo gallery application with Spring Boot backend and Vue.js front
 - **Photo metadata** - title, description, file size, upload date
 - **Responsive gallery** with grid layout
 
+### 🗂️ Gallery Management
+- **Gallery organization** - create and manage multiple galleries
+- **Photo organization** - move photos between galleries
+- **Gallery filtering** - view photos by specific gallery or unorganized photos
+- **Gallery editing** - update gallery names and descriptions
+- **Gallery deletion** - remove galleries with photo management options
+- **Gallery previews** - see first 4 photos in gallery overview
+- **Bulk operations** - select and move multiple photos between galleries
+
+📖 **[Detailed Gallery Features Documentation](GALLERY_FEATURE.md)**
+
 ### 🖼️ Advanced Photo Viewing
 - **Full-screen photo viewer** with dark theme
 - **Zoom functionality** - 50% to 300% zoom range

@@ -11,6 +11,7 @@ export interface Photo {
   originalFilename?: string
   contentType?: string
   size?: number
+  galleryId?: number
   // data field removed - will be fetched separately when needed
 }
 
@@ -91,10 +92,14 @@ class ApiService {
   }
 
   // Get all photos with pagination (metadata only)
-  async getAllPhotos(page: number = 0, size: number = 10): Promise<PaginatedResponse<Photo>> {
+  async getAllPhotos(page: number = 0, size: number = 10, galleryId?: number): Promise<PaginatedResponse<Photo>> {
     console.log('🌐 Making API call to /photos with auth headers:', this.getAuthHeaders())
+    const params: any = { page, size }
+    if (galleryId !== undefined) {
+      params.galleryId = galleryId
+    }
     const response = await this.api.get('/photos', {
-      params: { page, size },
+      params,
       headers: this.getAuthHeaders()
     })
     console.log('📡 API response received:', response.data)
@@ -130,15 +135,23 @@ class ApiService {
   async createPhoto(
     title: string,
     description: string,
-    file: File
+    file: File,
+    galleryId?: number
   ): Promise<Photo> {
     const formData = new FormData()
     formData.append('title', title)
     formData.append('description', description)
     formData.append('file', file)
 
-    // Use axios with proper FormData handling
-    const response = await this.uploadApi.post('/photos', formData, {
+    // Build URL parameters for gallery ID
+    const params = new URLSearchParams()
+    if (galleryId !== undefined) {
+      params.append('galleryId', galleryId.toString())
+    }
+
+    // Use axios with proper FormData handling and URL parameters
+    const url = params.toString() ? `/photos?${params.toString()}` : '/photos'
+    const response = await this.uploadApi.post(url, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
         ...this.getAuthHeaders()
@@ -152,7 +165,8 @@ class ApiService {
   async bulkCreatePhotos(
     files: File[],
     titles?: string[],
-    descriptions?: string[]
+    descriptions?: string[],
+    galleryId?: number
   ): Promise<Photo[]> {
     // Validate inputs
     if (!files || files.length === 0) {
@@ -168,8 +182,13 @@ class ApiService {
       formData.append('files', file, file.name)
     })
     
-    // Build URL parameters for titles and descriptions
+    // Build URL parameters for titles, descriptions, and gallery ID
     const params = new URLSearchParams()
+    
+    // Add gallery ID if provided
+    if (galleryId !== undefined) {
+      params.append('galleryId', galleryId.toString())
+    }
     
     // Add titles if provided
     if (titles && titles.length > 0) {
@@ -216,7 +235,8 @@ class ApiService {
     id: number,
     title: string,
     description: string,
-    file?: File
+    file?: File,
+    galleryId?: number
   ): Promise<Photo> {
     const formData = new FormData()
     formData.append('title', title)
@@ -225,8 +245,15 @@ class ApiService {
       formData.append('file', file)
     }
 
-    // Use axios with proper FormData handling
-    const response = await this.uploadApi.put(`/photos/${id}`, formData, {
+    // Build URL parameters for gallery ID
+    const params = new URLSearchParams()
+    if (galleryId !== undefined) {
+      params.append('galleryId', galleryId.toString())
+    }
+
+    // Use axios with proper FormData handling and URL parameters
+    const url = params.toString() ? `/photos/${id}?${params.toString()}` : `/photos/${id}`
+    const response = await this.uploadApi.put(url, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
         ...this.getAuthHeaders()
@@ -365,6 +392,49 @@ class ApiService {
         ...this.getAuthHeaders()
       },
       transformRequest: (data) => data // Prevent axios from transforming FormData
+    })
+    return response.data
+  }
+
+  // Gallery API methods
+  async getGalleries(): Promise<any[]> {
+    const response = await this.api.get('/galleries', {
+      headers: this.getAuthHeaders()
+    })
+    return response.data
+  }
+
+  async createGallery(galleryData: { name: string; description?: string }): Promise<any> {
+    const response = await this.api.post('/galleries', galleryData, {
+      headers: this.getAuthHeaders()
+    })
+    return response.data
+  }
+
+  async getGallery(galleryId: number): Promise<any> {
+    const response = await this.api.get(`/galleries/${galleryId}`, {
+      headers: this.getAuthHeaders()
+    })
+    return response.data
+  }
+
+  async updateGallery(galleryId: number, galleryData: { name: string; description?: string }): Promise<any> {
+    const response = await this.api.put(`/galleries/${galleryId}`, galleryData, {
+      headers: this.getAuthHeaders()
+    })
+    return response.data
+  }
+
+  async deleteGallery(galleryId: number): Promise<string> {
+    const response = await this.api.delete(`/galleries/${galleryId}`, {
+      headers: this.getAuthHeaders()
+    })
+    return response.data
+  }
+
+  async movePhotos(moveData: { photoIds: number[]; targetGalleryId: number | null }): Promise<string> {
+    const response = await this.api.post('/galleries/move-photos', moveData, {
+      headers: this.getAuthHeaders()
     })
     return response.data
   }

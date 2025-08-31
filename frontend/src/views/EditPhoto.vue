@@ -68,6 +68,33 @@
         </div>
 
         <div class="form-group">
+          <label for="gallery">Move to Gallery</label>
+          <select
+            id="gallery"
+            v-model="formData.galleryId"
+            class="form-select"
+            :disabled="loadingGalleries"
+          >
+            <!-- Show current gallery first if photo is in a gallery -->
+            <option 
+              v-if="photo?.galleryId && currentGallery"
+              :value="currentGallery.id"
+            >
+              {{ currentGallery.name }} ({{ currentGallery.photoCount }} photos) - Current
+            </option>
+            <option :value="null">Unorganized Photos</option>
+            <option 
+              v-for="gallery in availableGalleries" 
+              :key="gallery.id" 
+              :value="gallery.id"
+            >
+              {{ gallery.name }} ({{ gallery.photoCount }} photos)
+            </option>
+          </select>
+          <div v-if="loadingGalleries" class="loading-text">Loading galleries...</div>
+        </div>
+
+        <div class="form-group">
           <label for="file">New Image (Optional)</label>
           <div class="file-upload-area" :class="{ 'drag-over': isDragOver, 'has-file': selectedFile, 'file-too-large': isFileTooLarge }">
             <input 
@@ -125,7 +152,7 @@
  </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { usePhotoStore } from '@/stores/photoStore'
 import { useModalStore } from '@/stores/modalStore'
@@ -147,8 +174,13 @@ const imageError = ref(false)
 // Form data
 const formData = ref({
   title: '',
-  description: ''
+  description: '',
+  galleryId: null as number | null
 })
+
+// Gallery selection
+const galleries = ref<any[]>([])
+const loadingGalleries = ref(false)
 
 // File upload state
 const fileInput = ref<HTMLInputElement>()
@@ -165,6 +197,18 @@ const canSubmit = computed(() => {
   return formData.value.title.trim() && !submitting.value
 })
 
+// Computed properties for gallery selection
+const currentGallery = computed(() => {
+  if (!photo.value?.galleryId || !galleries.value.length) return null
+  return galleries.value.find(gallery => gallery.id === photo.value?.galleryId) || null
+})
+
+const availableGalleries = computed(() => {
+  if (!galleries.value.length) return []
+  // Filter out the current gallery to avoid duplication
+  return galleries.value.filter(gallery => gallery.id !== photo.value?.galleryId)
+})
+
 // Methods
 const loadPhoto = async () => {
   const photoId = Number(route.params.id)
@@ -178,6 +222,7 @@ const loadPhoto = async () => {
     photo.value = await apiService.getPhotoById(photoId)
     formData.value.title = photo.value.title
     formData.value.description = photo.value.description || ''
+    formData.value.galleryId = photo.value.galleryId || null
     await loadCurrentImage(photoId)
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load photo'
@@ -263,11 +308,12 @@ const handleSubmit = async () => {
       photo.value.id,
       formData.value.title,
       formData.value.description,
-      selectedFile.value || undefined
+      selectedFile.value || undefined,
+      formData.value.galleryId || undefined
     )
     
-    // Navigate back to gallery
-    router.push('/')
+    // Navigate back to the appropriate page
+    goBack()
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to update photo'
     console.error('Error updating photo:', err)
@@ -277,7 +323,24 @@ const handleSubmit = async () => {
 }
 
 const handleCancel = () => {
-  router.push('/')
+  goBack()
+}
+
+// Navigation helper function
+const goBack = () => {
+  // Check if we have a return path from query params
+  const returnPath = route.query.return as string
+  if (returnPath) {
+    router.push(returnPath)
+  } else {
+    // Default fallback - check if photo has galleryId to go back to specific gallery
+    if (photo.value?.galleryId) {
+      router.push(`/gallery/${photo.value.galleryId}`)
+    } else {
+      // Fallback to photos page
+      router.push('/photos')
+    }
+  }
 }
 
 const handleDelete = async () => {
@@ -287,7 +350,7 @@ const handleDelete = async () => {
 
   try {
     await photoStore.deletePhoto(photo.value.id)
-    router.push('/')
+    goBack()
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to delete photo'
     console.error('Error deleting photo:', err)
@@ -303,9 +366,26 @@ const showDeleteModal = () => {
   )
 }
 
-onMounted(() => {
-  loadPhoto()
+const loadGalleries = async () => {
+  try {
+    loadingGalleries.value = true
+    const response = await apiService.getGalleries()
+    galleries.value = response
+  } catch (err) {
+    console.error('Error loading galleries:', err)
+    error.value = 'Failed to load galleries'
+  } finally {
+    loadingGalleries.value = false
+  }
+}
+
+onMounted(async () => {
+  // Load galleries first, then photo to ensure proper initialization
+  await loadGalleries()
+  await loadPhoto()
 })
+
+
 </script>
 
 <style scoped>
@@ -457,7 +537,8 @@ onMounted(() => {
 }
 
 .form-input,
-.form-textarea {
+.form-textarea,
+.form-select {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid #d1d5db;
@@ -466,8 +547,21 @@ onMounted(() => {
   transition: border-color 0.2s ease;
 }
 
+.form-select {
+  background-color: white;
+  cursor: pointer;
+}
+
+.loading-text {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
 .form-input:focus,
-.form-textarea:focus {
+.form-textarea:focus,
+.form-select:focus {
   outline: none;
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);

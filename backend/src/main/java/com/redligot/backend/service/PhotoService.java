@@ -1,7 +1,9 @@
 package com.redligot.backend.service;
 
 import com.redligot.backend.model.Photo;
+import com.redligot.backend.model.Gallery;
 import com.redligot.backend.repository.PhotoRepository;
+import com.redligot.backend.repository.GalleryRepository;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
@@ -21,9 +23,11 @@ import java.util.List;
 public class PhotoService {
 
 	private final PhotoRepository photoRepository;
+	private final GalleryRepository galleryRepository;
 
-	public PhotoService(PhotoRepository photoRepository) {
+	public PhotoService(PhotoRepository photoRepository, GalleryRepository galleryRepository) {
 		this.photoRepository = photoRepository;
+		this.galleryRepository = galleryRepository;
 	}
 
 	/**
@@ -60,6 +64,14 @@ public class PhotoService {
 	public Page<Photo> findByUserId(Long userId, Pageable pageable) {
 		return photoRepository.findByUserId(userId, pageable);
 	}
+	
+	public Page<Photo> findByUserIdAndGalleryId(Long userId, Long galleryId, Pageable pageable) {
+		if (galleryId == null) {
+			return photoRepository.findByUserIdAndGalleryIsNull(userId, pageable);
+		} else {
+			return photoRepository.findByUserIdAndGalleryId(userId, galleryId, pageable);
+		}
+	}
 
 	/**
 	 * Find a photo by its ID.
@@ -82,10 +94,11 @@ public class PhotoService {
 	 * @param description Photo description (optional)
 	 * @param file Uploaded image file
 	 * @param user The user who owns the photo (required for authentication)
+	 * @param galleryId Gallery ID (optional, if null photo will be unorganized)
 	 * @return The created photo with user association
 	 * @throws ResponseStatusException if file is invalid or too large
 	 */
-	public Photo create(String title, String description, MultipartFile file, com.redligot.backend.model.User user) {
+	public Photo create(String title, String description, MultipartFile file, com.redligot.backend.model.User user, Long galleryId) {
 		try {
 			// Validate file size (max 8MB to fit in DB2 BLOB(10M))
 			if (file.getSize() > 8 * 1024 * 1024) {
@@ -108,6 +121,14 @@ public class PhotoService {
 			photo.setSize(file.getSize());
 			photo.setData(file.getBytes());
 			photo.setUser(user);
+			
+			// Set gallery if provided
+			if (galleryId != null) {
+				Gallery gallery = galleryRepository.findByIdAndUserId(galleryId, user.getId())
+						.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
+								"Gallery not found or does not belong to user"));
+				photo.setGallery(gallery);
+			}
 
 			return photoRepository.save(photo);
 		} catch (IOException e) {
@@ -127,7 +148,7 @@ public class PhotoService {
 	 * @return List of created photos with user association
 	 * @throws ResponseStatusException if any file is invalid or too large
 	 */
-	public List<Photo> bulkCreate(MultipartFile[] files, String[] titles, String[] descriptions, com.redligot.backend.model.User user) {
+	public List<Photo> bulkCreate(MultipartFile[] files, String[] titles, String[] descriptions, com.redligot.backend.model.User user, Long galleryId) {
 		if (files == null || files.length == 0) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
 					"At least one file must be provided");
@@ -168,6 +189,14 @@ public class PhotoService {
 				photo.setSize(file.getSize());
 				photo.setData(file.getBytes());
 				photo.setUser(user);
+				
+				// Set gallery if provided
+				if (galleryId != null) {
+					Gallery gallery = galleryRepository.findByIdAndUserId(galleryId, user.getId())
+							.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
+									"Gallery not found or does not belong to user"));
+					photo.setGallery(gallery);
+				}
 
 				createdPhotos.add(photoRepository.save(photo));
 			} catch (IOException e) {
@@ -198,14 +227,26 @@ public class PhotoService {
 	 * @param title New title
 	 * @param description New description
 	 * @param file New image file (optional)
+	 * @param galleryId Gallery ID (optional, if null photo will be unorganized)
 	 * @return The updated photo
 	 * @throws ResponseStatusException if photo not found or file is invalid
 	 */
-	public Photo update(Long id, String title, String description, MultipartFile file) {
+	public Photo update(Long id, String title, String description, MultipartFile file, Long galleryId) {
 		Photo existingPhoto = findById(id);
 
 		existingPhoto.setTitle(title);
 		existingPhoto.setDescription(description);
+		
+		// Update gallery if provided
+		if (galleryId != null) {
+			Gallery gallery = galleryRepository.findByIdAndUserId(galleryId, existingPhoto.getUser().getId())
+					.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
+							"Gallery not found or does not belong to user"));
+			existingPhoto.setGallery(gallery);
+		} else {
+			// Remove from gallery (set to unorganized)
+			existingPhoto.setGallery(null);
+		}
 
 		if (file != null && !file.isEmpty()) {
 			try {

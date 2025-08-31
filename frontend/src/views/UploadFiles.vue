@@ -96,6 +96,26 @@
             :disabled="isUploading"
           ></textarea>
         </div>
+
+        <div class="form-group">
+          <label for="gallery" class="form-label">Upload to Gallery</label>
+          <select
+            id="gallery"
+            v-model="formData.galleryId"
+            class="form-select"
+            :disabled="isUploading || loadingGalleries"
+          >
+            <option :value="null">Unorganized Photos</option>
+            <option 
+              v-for="gallery in galleries" 
+              :key="gallery.id" 
+              :value="gallery.id"
+            >
+              {{ gallery.name }} ({{ gallery.photoCount }} photos)
+            </option>
+          </select>
+          <div v-if="loadingGalleries" class="loading-text">Loading galleries...</div>
+        </div>
       </div>
 
       <!-- Action Buttons -->
@@ -134,6 +154,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePhotoStore } from '@/stores/photoStore'
 import { useModalStore } from '@/stores/modalStore'
+import { apiService } from '@/services/api'
 
 const router = useRouter()
 const photoStore = usePhotoStore()
@@ -154,8 +175,13 @@ const error = ref<string | null>(null)
 // Form data
 const formData = ref({
   title: '',
-  description: ''
+  description: '',
+  galleryId: null as number | null
 })
+
+// Gallery selection
+const galleries = ref<any[]>([])
+const loadingGalleries = ref(false)
 
 // Computed
 const isFileTooLarge = computed(() => {
@@ -268,11 +294,12 @@ const handleUpload = async () => {
     await photoStore.addPhoto(
       formData.value.title.trim(),
       formData.value.description.trim(),
-      selectedFile.value
+      selectedFile.value,
+      formData.value.galleryId || undefined
     )
     
     // Reset form
-    formData.value = { title: '', description: '' }
+    formData.value = { title: '', description: '', galleryId: null }
     removeFile()
     
     // Redirect to gallery
@@ -292,6 +319,19 @@ const clearError = () => {
   error.value = null
 }
 
+const loadGalleries = async () => {
+  try {
+    loadingGalleries.value = true
+    const response = await apiService.getGalleries()
+    galleries.value = response
+  } catch (err) {
+    console.error('Error loading galleries:', err)
+    error.value = 'Failed to load galleries'
+  } finally {
+    loadingGalleries.value = false
+  }
+}
+
 // Bulk upload methods
 const showBulkUpload = () => {
   modalStore.showBulkUploadModal(
@@ -308,6 +348,7 @@ const showBulkUpload = () => {
 // Clear any existing errors when component mounts
 onMounted(() => {
   clearError()
+  loadGalleries()
 })
 </script>
 
@@ -559,7 +600,8 @@ onMounted(() => {
 }
 
 .form-input:focus,
-.form-textarea:focus {
+.form-textarea:focus,
+.form-select:focus {
   outline: none;
   border-color: #3498db;
 }
@@ -567,6 +609,25 @@ onMounted(() => {
 .form-textarea {
   resize: vertical;
   min-height: 80px;
+}
+
+.form-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #ecf0f1;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+  box-sizing: border-box;
+  background-color: white;
+  cursor: pointer;
+}
+
+.loading-text {
+  font-size: 0.9rem;
+  color: #7f8c8d;
+  margin-top: 0.5rem;
+  font-style: italic;
 }
 
 .form-actions {

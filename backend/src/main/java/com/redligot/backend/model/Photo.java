@@ -59,6 +59,11 @@ public class Photo {
 	@JoinColumn(name = "user_id", nullable = false)
 	@JsonIgnore
 	private User user;
+	
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "gallery_id")
+	@JsonIgnore
+	private Gallery gallery;
 
 	public Long getId() {
 		return id;
@@ -122,5 +127,13 @@ public class Photo {
 
 	public void setUser(User user) {
 		this.user = user;
+	}
+	
+	public Gallery getGallery() {
+		return gallery;
+	}
+	
+	public void setGallery(Gallery gallery) {
+		this.gallery = gallery;
 	}
 }

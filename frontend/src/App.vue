@@ -4,7 +4,11 @@ import { ref, onMounted, watch } from 'vue'
 import { useModalStore } from '@/stores/modalStore'
 import { useAuthStore } from '@/stores/authStore'
 import DeleteConfirmModal from '@/components/DeleteConfirmModal.vue'
-import BulkUploadModal from '@/components/BulkUploadModal.vue'
+import GlobalBulkUploadModal from '@/components/GlobalBulkUploadModal.vue'
+import GlobalMovePhotosModal from '@/components/GlobalMovePhotosModal.vue'
+import GlobalEditGalleryModal from '@/components/GlobalEditGalleryModal.vue'
+import GlobalDeleteGalleryModal from '@/components/GlobalDeleteGalleryModal.vue'
+import GlobalCreateGalleryModal from '@/components/GlobalCreateGalleryModal.vue'
 import UserAvatar from '@/components/UserAvatar.vue'
 
 const router = useRouter()
@@ -55,7 +59,7 @@ const handleLogout = () => {
     <header class="app-header">
       <div class="header-wrapper">
         <div class="header-content">
-          <RouterLink to="/gallery" class="app-title-link">
+          <RouterLink to="/photos" class="app-title-link">
             <h1 class="app-title">Photo Gallery</h1>
           </RouterLink>
           
@@ -68,7 +72,8 @@ const handleLogout = () => {
 
           <!-- Desktop navigation -->
           <nav class="app-nav desktop-nav" v-if="authStore.isAuthenticated">
-            <RouterLink to="/gallery" class="nav-link" @click="closeMenu">Gallery</RouterLink>
+            <RouterLink to="/photos" class="nav-link" @click="closeMenu">Photos</RouterLink>
+            <RouterLink to="/galleries" class="nav-link" @click="closeMenu">Galleries</RouterLink>
             <RouterLink to="/upload" class="nav-link" @click="closeMenu">Upload</RouterLink>
             <RouterLink to="/profile" class="nav-link" @click="closeMenu">Profile</RouterLink>
             <div class="user-section">
@@ -86,7 +91,8 @@ const handleLogout = () => {
 
         <!-- Mobile navigation -->
         <nav class="app-nav mobile-nav" :class="{ 'open': isMenuOpen }" v-if="authStore.isAuthenticated">
-          <RouterLink to="/gallery" class="nav-link" @click="closeMenu">Gallery</RouterLink>
+          <RouterLink to="/photos" class="nav-link" @click="closeMenu">Photos</RouterLink>
+          <RouterLink to="/galleries" class="nav-link" @click="closeMenu">Galleries</RouterLink>
           <RouterLink to="/upload" class="nav-link" @click="closeMenu">Upload</RouterLink>
           <RouterLink to="/profile" class="nav-link" @click="closeMenu">Profile</RouterLink>
           <div class="mobile-user-section">
@@ -117,12 +123,19 @@ const handleLogout = () => {
     />
 
     <!-- Global Bulk Upload Modal -->
-    <BulkUploadModal
-      :is-open="modalStore.bulkUploadModal.isOpen"
-      :is-uploading="modalStore.bulkUploadModal.isUploading"
-      @upload="modalStore.handleBulkUpload"
-      @cancel="modalStore.handleBulkUploadCancel"
-    />
+    <GlobalBulkUploadModal />
+    
+    <!-- Global Move Photos Modal -->
+    <GlobalMovePhotosModal />
+    
+    <!-- Global Edit Gallery Modal -->
+    <GlobalEditGalleryModal />
+    
+            <!-- Global Delete Gallery Modal -->
+        <GlobalDeleteGalleryModal />
+
+        <!-- Global Create Gallery Modal -->
+        <GlobalCreateGalleryModal />
   </div>
 </template>
 
@@ -177,6 +190,7 @@ body {
   gap: 2rem;
   position: relative;
   z-index: 1001;
+  background-color: white;
 }
 
 .app-title-link {
