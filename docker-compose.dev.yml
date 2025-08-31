@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: backend-dev
     environment:
-      - SPRING_PROFILES_ACTIVE=h2
+      - SPRING_PROFILES_ACTIVE=default
     ports:
       - "8080:8080"
     restart: unless-stopped

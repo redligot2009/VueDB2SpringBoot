@@ -16,15 +16,14 @@ public class JwtTokenProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtTokenProvider.class);
 
-    @Value("${app.jwtSecret:defaultSecretKeyForDevelopmentOnly}")
+    @Value("${app.jwtSecret:your-super-secure-jwt-secret-key-that-is-at-least-64-characters-long-for-hs512-algorithm}")
     private String jwtSecret;
 
     @Value("${app.jwtExpirationInMs:86400000}")
     private int jwtExpirationInMs;
 
     private Key getSigningKey() {
-        byte[] keyBytes = jwtSecret.getBytes();
-        return Keys.hmacShaKeyFor(keyBytes);
+        return Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
 
     public String generateToken(Authentication authentication) {
