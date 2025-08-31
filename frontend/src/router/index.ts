@@ -7,6 +7,8 @@ import EditPhoto from '@/views/EditPhoto.vue'
 import Login from '@/views/Login.vue'
 import Signup from '@/views/Signup.vue'
 import Profile from '@/views/Profile.vue'
+import Galleries from '@/views/Galleries.vue'
+import GalleryDetail from '@/views/GalleryDetail.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -36,13 +38,13 @@ const router = createRouter({
     {
       path: '/galleries',
       name: 'galleries',
-      component: () => import('@/views/Galleries.vue'),
+      component: Galleries,
       meta: { requiresAuth: true }
     },
     {
       path: '/gallery/:id',
       name: 'gallery-detail',
-      component: () => import('@/views/GalleryDetail.vue'),
+      component: GalleryDetail,
       props: true,
       meta: { requiresAuth: true }
     },
