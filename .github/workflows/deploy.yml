@@ -154,8 +154,17 @@ jobs:
         echo "Checking existing EC2 instances..."
         aws ec2 describe-instances \
           --filters "Name=tag:Name,Values=vuedb2springboot-web-server" \
-          --query 'Reservations[].Instances[?State.Name!=`terminated`]' \
+          --query 'Reservations[].Instances[]' \
           --output json > /tmp/instances.json
+        
+        echo "Raw AWS CLI output (first 500 chars):"
+        head -c 500 /tmp/instances.json
+        echo ""
+        echo ""
+        
+        # Filter out terminated instances using jq
+        jq '[.[] | select(.State.Name != "terminated")]' /tmp/instances.json > /tmp/active-instances.json
+        mv /tmp/active-instances.json /tmp/instances.json
         
         INSTANCE_COUNT=$(jq length /tmp/instances.json)
         echo "Found $INSTANCE_COUNT existing instances"
@@ -198,8 +207,12 @@ jobs:
         # Get all instances with our tag
         aws ec2 describe-instances \
           --filters "Name=tag:Name,Values=vuedb2springboot-web-server" \
-          --query 'Reservations[].Instances[?State.Name!=`terminated`]' \
+          --query 'Reservations[].Instances[]' \
           --output json > /tmp/all-instances.json
+        
+        # Filter out terminated instances using jq
+        jq '[.[] | select(.State.Name != "terminated")]' /tmp/all-instances.json > /tmp/active-all-instances.json
+        mv /tmp/active-all-instances.json /tmp/all-instances.json
         
         INSTANCE_COUNT=$(jq length /tmp/all-instances.json)
         echo "Found $INSTANCE_COUNT instances with project tag"
