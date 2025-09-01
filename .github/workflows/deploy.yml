@@ -439,11 +439,34 @@ jobs:
           # Debug: Check nginx error logs
           echo "Nginx error logs:"
           sudo docker logs frontend 2>&1 | tail -10
+          
+          # Debug: Test local connectivity
+          echo "Testing local connectivity to frontend..."
+          curl -f -s http://localhost/health || echo "Local health check failed"
+          curl -f -s http://localhost/ | head -5 || echo "Local frontend check failed"
+          
+          # Debug: Check if the app files are present
+          echo "Checking if Vue app files are present:"
+          sudo docker exec frontend ls -la /usr/share/nginx/html/
+          
+          # Debug: Check nginx access logs
+          echo "Nginx access logs:"
+          sudo docker exec frontend tail -5 /var/log/nginx/access.log || echo "No access logs yet"
         EOF
 
     - name: Health Check
       run: |
         echo "Performing health check..."
+        echo "EC2 Instance IP: ${{ steps.get-ip.outputs.instance_ip }}"
+        
+        # Test basic connectivity to the instance
+        echo "Testing basic connectivity to EC2 instance..."
+        ping -c 3 ${{ steps.get-ip.outputs.instance_ip }} || echo "Ping failed"
+        
+        # Test if port 80 is accessible from outside
+        echo "Testing port 80 accessibility..."
+        timeout 10 bash -c "</dev/tcp/${{ steps.get-ip.outputs.instance_ip }}/80" && echo "Port 80 is accessible" || echo "Port 80 is not accessible"
+        
         echo "Checking backend health directly..."
         for i in {1..5}; do
           if curl -f -s http://${{ steps.get-ip.outputs.instance_ip }}:8080/health; then
@@ -465,11 +488,19 @@ jobs:
         done
         
         echo "Checking if frontend is serving the app..."
-        if curl -f -s http://${{ steps.get-ip.outputs.instance_ip }}/ | grep -q "VueDB2SpringBoot"; then
+        FRONTEND_RESPONSE=$(curl -f -s http://${{ steps.get-ip.outputs.instance_ip }}/ || echo "FAILED")
+        if echo "$FRONTEND_RESPONSE" | grep -q "VueDB2SpringBoot"; then
           echo "Frontend app is being served correctly!"
         else
           echo "Frontend app might not be serving correctly"
+          echo "Response received:"
+          echo "$FRONTEND_RESPONSE" | head -10
         fi
+        
+        # Test the health endpoint specifically
+        echo "Testing health endpoint..."
+        HEALTH_RESPONSE=$(curl -f -s http://${{ steps.get-ip.outputs.instance_ip }}/health || echo "FAILED")
+        echo "Health endpoint response: $HEALTH_RESPONSE"
 
     - name: Notify deployment status
       if: always()
