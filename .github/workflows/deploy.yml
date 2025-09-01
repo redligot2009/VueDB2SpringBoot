@@ -209,6 +209,31 @@ jobs:
         ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.get-ip.outputs.instance_ip }} << 'EOF'
           cd /opt/${{ env.PROJECT_NAME }}
           
+          # Install Docker if not present
+          if ! command -v docker &> /dev/null; then
+            echo "Docker not found, installing..."
+            curl -fsSL https://get.docker.com -o get-docker.sh
+            sudo sh get-docker.sh
+            sudo usermod -aG docker ubuntu
+          fi
+          
+          # Start Docker service
+          sudo systemctl start docker
+          sudo systemctl enable docker
+          
+          # Install Docker Compose if not present
+          if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+            echo "Docker Compose not found, installing..."
+            # Install Docker Compose v2 (plugin)
+            sudo mkdir -p /usr/local/lib/docker/cli-plugins
+            sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/lib/docker/cli-plugins/docker-compose
+            sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+            
+            # Also install legacy docker-compose for compatibility
+            sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+          fi
+          
           # Create .env file if it doesn't exist
           if [ ! -f .env ]; then
             echo "domain_name=${{ secrets.DOMAIN_NAME }}" > .env
