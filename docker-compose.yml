@@ -21,7 +21,7 @@ services:
     volumes:
       - db2_data:/database
     restart: unless-stopped
-    shm_size: 4g
+    shm_size: 1g
 
   backend:
     build:
