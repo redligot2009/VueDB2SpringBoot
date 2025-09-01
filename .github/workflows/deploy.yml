@@ -22,13 +22,23 @@ jobs:
           DB2INSTANCE: db2inst1
           DB2INST1_PASSWORD: passw0rd
           DBNAME: PHOTODB
+          BLU: false
+          ENABLE_ORACLE_COMPATIBILITY: false
+          UPDATEAVAIL: NO
+          TO_CREATE_SAMPLEDB: false
+          REPODB: false
+          IS_OSXFS: false
+          PERSISTENT_HOME: true
+          HADR_ENABLED: false
         ports:
           - 50000:50000
         options: >-
-          --health-cmd "docker exec db2 db2 connect to PHOTODB user db2inst1 using passw0rd"
+          --privileged
+          --health-cmd "timeout 10 bash -c '</dev/tcp/localhost/50000'"
           --health-interval 30s
           --health-timeout 10s
-          --health-retries 5
+          --health-retries 10
+          --health-start-period 120s
 
     steps:
     - name: Checkout code
@@ -46,6 +56,18 @@ jobs:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
+
+    - name: Wait for DB2 to be ready
+      run: |
+        echo "Waiting for DB2 to be ready..."
+        for i in {1..30}; do
+          if timeout 10 bash -c '</dev/tcp/localhost/50000'; then
+            echo "DB2 is ready!"
+            break
+          fi
+          echo "Attempt $i: DB2 not ready yet, waiting 10 seconds..."
+          sleep 10
+        done
 
     - name: Run backend tests
       run: |
