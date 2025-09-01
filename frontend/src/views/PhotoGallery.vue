@@ -125,7 +125,7 @@ const selectedPhotos = ref<Set<number>>(new Set())
 const isSelectionMode = ref(false)
 
 // Page size state
-const selectedPageSize = ref<number>(10)
+const selectedPageSize = ref<number>(5)
 
 // Gallery filtering state
 const selectedGalleryId = ref<string>('null')

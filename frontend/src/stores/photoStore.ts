@@ -11,7 +11,7 @@ export const usePhotoStore = defineStore('photo', () => {
   
   // Pagination state
   const currentPage = ref(0)
-  const pageSize = ref(10)
+  const pageSize = ref(5)
   const totalElements = ref(0)
   const totalPages = ref(0)
   
@@ -34,7 +34,7 @@ export const usePhotoStore = defineStore('photo', () => {
   const isLastPage = computed(() => currentPage.value === totalPages.value - 1)
 
   // Actions
-  const fetchPhotos = async (page: number = 0, size: number = 10, galleryId?: number) => {
+  const fetchPhotos = async (page: number = 0, size: number = 5, galleryId?: number) => {
     // Check if user is authenticated before making API call
     const authStore = useAuthStore()
     if (!authStore.isAuthenticated) {
@@ -65,7 +65,7 @@ export const usePhotoStore = defineStore('photo', () => {
       // Ensure we're accessing the correct properties
       const content = parsedResponse?.content || []
       const responseNumber = parsedResponse?.number || 0
-      const responseSize = parsedResponse?.size || 10
+      const responseSize = parsedResponse?.size || 5
       const responseTotalElements = parsedResponse?.totalElements || 0
       const responseTotalPages = parsedResponse?.totalPages || 0
       
@@ -86,7 +86,7 @@ export const usePhotoStore = defineStore('photo', () => {
       // Reset to safe defaults on error
       photos.value = []
       currentPage.value = 0
-      pageSize.value = 10
+      pageSize.value = 5
       totalElements.value = 0
       totalPages.value = 0
     } finally {
@@ -248,7 +248,7 @@ export const usePhotoStore = defineStore('photo', () => {
     loading.value = false
     error.value = null
     currentPage.value = 0
-    pageSize.value = 10
+    pageSize.value = 5
     totalElements.value = 0
     totalPages.value = 0
   }

@@ -110,7 +110,7 @@ const photos = ref<Photo[]>([])
 const selectedPhotos = ref<number[]>([])
 const isSelectionMode = ref(false)
 const currentPage = ref(0)
-const pageSize = ref(12)
+const pageSize = ref(5)
 const totalElements = ref(0)
 const totalPages = ref(0)
 

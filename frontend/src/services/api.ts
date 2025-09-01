@@ -54,7 +54,7 @@ class ApiService {
   // Create a completely clean axios instance for file uploads
   private uploadApi = axios.create({
     baseURL: API_BASE_URL,
-    timeout: 120000, // 2 minutes timeout for file uploads
+    timeout: 300000, // 5 minutes timeout for bulk file uploads
     transformRequest: [(data) => data] // Don't transform FormData
   })
 
@@ -92,7 +92,7 @@ class ApiService {
   }
 
   // Get all photos with pagination (metadata only)
-  async getAllPhotos(page: number = 0, size: number = 10, galleryId?: number): Promise<PaginatedResponse<Photo>> {
+  async getAllPhotos(page: number = 0, size: number = 5, galleryId?: number): Promise<PaginatedResponse<Photo>> {
     console.log('🌐 Making API call to /photos with auth headers:', this.getAuthHeaders())
     const params: any = { page, size }
     if (galleryId !== undefined) {

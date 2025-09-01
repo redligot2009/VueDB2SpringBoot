@@ -3,7 +3,7 @@
     <div class="upload-header">
       <h1>Upload Files</h1>
       <p>Drag and drop your photos here or click to browse</p>
-      <p class="upload-limits">Maximum file size: 8MB • Supported formats: JPG, PNG, GIF, WebP</p>
+      <p class="upload-limits">Maximum file size: 8MB • Bulk upload: up to 20 files, 100MB total • Supported formats: JPG, PNG, GIF, WebP</p>
       <div class="upload-options">
         <button 
           type="button" 

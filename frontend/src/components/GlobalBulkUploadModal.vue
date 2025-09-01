@@ -160,6 +160,21 @@ const handleFiles = async (files: File[]) => {
     return
   }
 
+  // Check file count limit (reasonable limit for bulk upload)
+  const MAX_FILES = 20
+  if (imageFiles.length > MAX_FILES) {
+    alert(`Too many files selected. Please select no more than ${MAX_FILES} files at once.`)
+    return
+  }
+
+  // Check total size limit (approximate - 100MB total)
+  const MAX_TOTAL_SIZE = 100 * 1024 * 1024 // 100MB
+  const totalSize = imageFiles.reduce((sum, file) => sum + file.size, 0)
+  if (totalSize > MAX_TOTAL_SIZE) {
+    alert(`Total file size too large. Please select files with a total size under 100MB.`)
+    return
+  }
+
   // Create file objects with previews and default titles
   const fileObjects = await Promise.all(
     imageFiles.map(async (file) => ({

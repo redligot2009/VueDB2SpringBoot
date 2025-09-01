@@ -12,16 +12,16 @@
           <label for="page-size">Show:</label>
           <select 
             id="page-size" 
-            v-model="selectedPageSize" 
+            v-model.number="selectedPageSize" 
             @change="onPageSizeChange" 
             :disabled="loading"
             class="page-size-select"
           >
-            <option value="5">5</option>
-            <option value="10">10</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
+            <option :value="5">5</option>
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+            <option :value="100">100</option>
           </select>
           <span>per page</span>
         </div>
@@ -102,12 +102,18 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>()
 
-// Local page size state
-const selectedPageSize = ref(props.pageSize)
+// Local page size state - initialize with proper default
+const selectedPageSize = ref(props.pageSize || 5)
 
 // Computed properties
 const isFirstPage = computed(() => props.currentPage === 0)
 const isLastPage = computed(() => props.currentPage === props.totalPages - 1)
+
+// Ensure selectedPageSize is always a valid number
+const validPageSize = computed(() => {
+  const size = selectedPageSize.value || props.pageSize || 5
+  return Number(size)
+})
 
 const visiblePageNumbers = computed(() => {
   const current = props.currentPage + 1
@@ -160,12 +166,23 @@ const goToNextPage = () => {
 }
 
 const onPageSizeChange = () => {
-  emit('page-size-change', selectedPageSize.value)
+  const newSize = validPageSize.value
+  selectedPageSize.value = newSize
+  emit('page-size-change', newSize)
 }
 
 // Watch for prop changes to update local state
 watch(() => props.pageSize, (newSize) => {
-  selectedPageSize.value = newSize
+  console.log('StickyPagination: pageSize prop changed to:', newSize)
+  if (newSize && newSize !== selectedPageSize.value) {
+    selectedPageSize.value = newSize
+    console.log('StickyPagination: updated selectedPageSize to:', selectedPageSize.value)
+  }
+}, { immediate: true })
+
+// Debug: log current values
+watch([selectedPageSize, validPageSize], ([selected, valid]) => {
+  console.log('StickyPagination: selectedPageSize:', selected, 'validPageSize:', valid)
 })
 </script>
 
