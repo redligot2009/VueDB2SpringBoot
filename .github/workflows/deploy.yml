@@ -189,13 +189,21 @@ jobs:
 
     - name: Deploy application
       run: |
-        # Copy application files to EC2
+        # Copy application files to EC2 (to temporary directory first)
         rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
           --exclude='.git' \
           --exclude='node_modules' \
           --exclude='target' \
           --exclude='.github' \
-          ./ ubuntu@${{ steps.get-ip.outputs.instance_ip }}:/opt/${{ env.PROJECT_NAME }}/
+          ./ ubuntu@${{ steps.get-ip.outputs.instance_ip }}:/tmp/${{ env.PROJECT_NAME }}/
+        
+        # Move files to final location with sudo
+        ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.get-ip.outputs.instance_ip }} "
+          sudo mkdir -p /opt/${{ env.PROJECT_NAME }} &&
+          sudo rm -rf /opt/${{ env.PROJECT_NAME }}/* &&
+          sudo mv /tmp/${{ env.PROJECT_NAME }}/* /opt/${{ env.PROJECT_NAME }}/ &&
+          sudo chown -R ubuntu:ubuntu /opt/${{ env.PROJECT_NAME }}
+        "
 
         # Deploy the application
         ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.get-ip.outputs.instance_ip }} << 'EOF'
