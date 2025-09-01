@@ -221,11 +221,19 @@ jobs:
             fi
           fi
           
+          # Check Docker and Docker Compose versions
+          echo "Docker version:"
+          sudo docker --version
+          echo "Docker Compose version:"
+          sudo docker compose version || sudo docker-compose --version
+          
           # Stop existing containers
-          sudo docker compose -f docker-compose.prod.yml down || true
+          echo "Stopping existing containers..."
+          sudo docker compose -f docker-compose.prod.yml down || sudo docker-compose -f docker-compose.prod.yml down || true
           
           # Build and start new containers
-          sudo docker compose -f docker-compose.prod.yml up -d --build
+          echo "Building and starting new containers..."
+          sudo docker compose -f docker-compose.prod.yml up -d --build || sudo docker-compose -f docker-compose.prod.yml up -d --build
           
           # Wait for services to be ready
           echo "Waiting for services to start..."

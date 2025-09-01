@@ -12,7 +12,12 @@ curl -fsSL https://get.docker.com -o get-docker.sh
 sh get-docker.sh
 usermod -aG docker ubuntu
 
-# Install Docker Compose
+# Install Docker Compose v2 (plugin)
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/lib/docker/cli-plugins/docker-compose
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+# Also install legacy docker-compose for compatibility
 curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 chmod +x /usr/local/bin/docker-compose
 
@@ -172,9 +177,9 @@ echo "Starting deployment..."
 git pull origin main
 
 # Build and start services
-docker-compose -f docker-compose.prod.yml down
-docker-compose -f docker-compose.prod.yml build --no-cache
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml down || docker-compose -f docker-compose.prod.yml down
+docker compose -f docker-compose.prod.yml build --no-cache || docker-compose -f docker-compose.prod.yml build --no-cache
+docker compose -f docker-compose.prod.yml up -d || docker-compose -f docker-compose.prod.yml up -d
 
 # Wait for services to be ready
 echo "Waiting for services to start..."
@@ -199,8 +204,8 @@ After=docker.service
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/opt/${project_name}
-ExecStart=/usr/local/bin/docker-compose -f docker-compose.prod.yml up -d
-ExecStop=/usr/local/bin/docker-compose -f docker-compose.prod.yml down
+ExecStart=/usr/bin/docker compose -f docker-compose.prod.yml up -d
+ExecStop=/usr/bin/docker compose -f docker-compose.prod.yml down
 TimeoutStartSec=0
 
 [Install]
