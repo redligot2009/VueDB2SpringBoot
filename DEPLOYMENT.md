@@ -183,7 +183,7 @@ Our setup scripts can generate SSH keys automatically:
 
 ### 6. Configure GitHub Secrets
 
-Go to your GitHub repository → Settings → Secrets and variables → Actions, and add:
+Go to your GitHub repository → Settings → Secrets and variables → Actions → **Repository secrets**, and add:
 
 - `AWS_ACCESS_KEY_ID`: Your AWS access key
 - `AWS_SECRET_ACCESS_KEY`: Your AWS secret key
@@ -196,10 +196,11 @@ Go to your GitHub repository → Settings → Secrets and variables → Actions,
 
 1. **Copy your private key content** (from step 5 above)
 2. **Go to GitHub repository → Settings → Secrets and variables → Actions**
-3. **Click "New repository secret"**
-4. **Name**: `SSH_PRIVATE_KEY`
-5. **Value**: Paste the entire private key content
-6. **Click "Add secret"**
+3. **Click on "Repository secrets" tab** (not "Environment secrets")
+4. **Click "New repository secret"**
+5. **Name**: `SSH_PRIVATE_KEY`
+6. **Value**: Paste the entire private key content
+7. **Click "Add secret"**
 
 #### Important Security Notes
 
