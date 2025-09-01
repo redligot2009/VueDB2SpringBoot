@@ -48,62 +48,50 @@ data "aws_ami" "ubuntu" {
   }
 }
 
-# VPC
-resource "aws_vpc" "main" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_hostnames = true
-  enable_dns_support   = true
+# Data source to get default VPC
+data "aws_vpc" "default" {
+  default = true
+}
 
-  tags = {
-    Name = "${var.project_name}-vpc"
+# Use default VPC instead of creating a new one
+locals {
+  vpc_id = data.aws_vpc.default.id
+}
+
+# Internet Gateway (default VPC already has one, but we'll reference it)
+data "aws_internet_gateway" "default" {
+  filter {
+    name   = "attachment.vpc-id"
+    values = [local.vpc_id]
   }
 }
 
-# Internet Gateway
-resource "aws_internet_gateway" "main" {
-  vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name = "${var.project_name}-igw"
+# Data source to get default subnet
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [local.vpc_id]
   }
 }
 
-# Public Subnet
-resource "aws_subnet" "public" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.1.0/24"
-  availability_zone       = data.aws_availability_zones.available.names[0]
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "${var.project_name}-public-subnet"
-  }
+# Use the first default subnet
+data "aws_subnet" "default" {
+  id = data.aws_subnets.default.ids[0]
 }
 
-# Route Table
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.main.id
+# Data source to get default route table
+data "aws_route_table" "default" {
+  vpc_id = local.vpc_id
+  filter {
+    name   = "association.main"
+    values = ["true"]
   }
-
-  tags = {
-    Name = "${var.project_name}-public-rt"
-  }
-}
-
-# Route Table Association
-resource "aws_route_table_association" "public" {
-  subnet_id      = aws_subnet.public.id
-  route_table_id = aws_route_table.public.id
 }
 
 # Security Group
 resource "aws_security_group" "web" {
   name_prefix = "${var.project_name}-web-"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = local.vpc_id
 
   # HTTP
   ingress {
@@ -174,7 +162,7 @@ resource "aws_instance" "web" {
   instance_type          = var.instance_type
   key_name              = aws_key_pair.main.key_name
   vpc_security_group_ids = [aws_security_group.web.id]
-  subnet_id             = aws_subnet.public.id
+  subnet_id             = data.aws_subnet.default.id
 
   user_data = base64encode(templatefile("${path.module}/user_data.sh", {
     project_name = var.project_name
