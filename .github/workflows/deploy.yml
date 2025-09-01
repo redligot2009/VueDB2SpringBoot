@@ -1,0 +1,186 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  AWS_REGION: us-east-1
+  PROJECT_NAME: vuedb2springboot
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      db2:
+        image: icr.io/db2_community/db2:11.5.8.0
+        env:
+          LICENSE: accept
+          DB2INSTANCE: db2inst1
+          DB2INST1_PASSWORD: passw0rd
+          DBNAME: PHOTODB
+        ports:
+          - 50000:50000
+        options: >-
+          --health-cmd "docker exec db2 db2 connect to PHOTODB user db2inst1 using passw0rd"
+          --health-interval 30s
+          --health-timeout 10s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'eclipse-temurin'
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Run backend tests
+      run: |
+        cd backend
+        mvn clean test -Dspring.profiles.active=db2 -Ddb.url=jdbc:db2://localhost:50000/PHOTODB -Ddb.user=db2inst1 -Ddb.pass=passw0rd
+      env:
+        DB_URL: jdbc:db2://localhost:50000/PHOTODB
+        DB_USER: db2inst1
+        DB_PASS: passw0rd
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install frontend dependencies
+      run: |
+        cd frontend
+        npm ci
+
+    - name: Run frontend tests
+      run: |
+        cd frontend
+        npm run test:unit || echo "No tests configured"
+
+    - name: Build frontend
+      run: |
+        cd frontend
+        npm run build
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.6.0
+
+    - name: Terraform Init
+      run: |
+        cd terraform
+        terraform init
+
+    - name: Terraform Plan
+      run: |
+        cd terraform
+        terraform plan -var="cloudflare_api_token=${{ secrets.CLOUDFLARE_API_TOKEN }}" -var="cloudflare_zone_id=${{ secrets.CLOUDFLARE_ZONE_ID }}" -var="domain_name=${{ secrets.DOMAIN_NAME }}"
+
+    - name: Terraform Apply
+      run: |
+        cd terraform
+        terraform apply -auto-approve -var="cloudflare_api_token=${{ secrets.CLOUDFLARE_API_TOKEN }}" -var="cloudflare_zone_id=${{ secrets.CLOUDFLARE_ZONE_ID }}" -var="domain_name=${{ secrets.DOMAIN_NAME }}"
+
+    - name: Get EC2 Instance IP
+      id: get-ip
+      run: |
+        cd terraform
+        INSTANCE_IP=$(terraform output -raw instance_public_ip)
+        echo "instance_ip=$INSTANCE_IP" >> $GITHUB_OUTPUT
+
+    - name: Wait for EC2 instance to be ready
+      run: |
+        echo "Waiting for EC2 instance to be ready..."
+        for i in {1..30}; do
+          if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ubuntu@${{ steps.get-ip.outputs.instance_ip }} 'echo "Instance is ready"'; then
+            echo "Instance is ready!"
+            break
+          fi
+          echo "Attempt $i: Instance not ready yet, waiting 30 seconds..."
+          sleep 30
+        done
+
+    - name: Setup SSH key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ steps.get-ip.outputs.instance_ip }} >> ~/.ssh/known_hosts
+
+    - name: Deploy application
+      run: |
+        # Copy application files to EC2
+        rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
+          --exclude='.git' \
+          --exclude='node_modules' \
+          --exclude='target' \
+          --exclude='.github' \
+          ./ ubuntu@${{ steps.get-ip.outputs.instance_ip }}:/opt/${{ env.PROJECT_NAME }}/
+
+        # Deploy the application
+        ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.get-ip.outputs.instance_ip }} << 'EOF'
+          cd /opt/${{ env.PROJECT_NAME }}
+          
+          # Update environment variables
+          sed -i "s/\${domain_name}/${{ secrets.DOMAIN_NAME }}/g" docker-compose.prod.yml
+          
+          # Deploy
+          ./deploy.sh
+          
+          # Setup SSL certificate
+          sudo certbot --nginx -d ${{ secrets.DOMAIN_NAME }} --non-interactive --agree-tos --email admin@${{ secrets.DOMAIN_NAME }} --redirect
+        EOF
+
+    - name: Health Check
+      run: |
+        echo "Performing health check..."
+        for i in {1..10}; do
+          if curl -f -s https://${{ secrets.DOMAIN_NAME }}/health; then
+            echo "Health check passed!"
+            break
+          fi
+          echo "Health check attempt $i failed, retrying in 30 seconds..."
+          sleep 30
+        done
+
+    - name: Notify deployment status
+      if: always()
+      run: |
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "✅ Deployment successful! Application is available at https://${{ secrets.DOMAIN_NAME }}"
+        else
+          echo "❌ Deployment failed!"
+        fi

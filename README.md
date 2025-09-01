@@ -1,6 +1,6 @@
-# Photo Gallery Application
+# VueDB2SpringBoot - Photo Gallery Application
 
-A full-stack photo gallery application with Spring Boot backend and Vue.js frontend, featuring JWT authentication, photo management, and advanced viewing capabilities.
+A full-stack photo gallery application with Spring Boot backend and Vue.js frontend, featuring JWT authentication, photo management, advanced viewing capabilities, and complete CI/CD deployment to AWS.
 
 ## 🚀 Features
 
@@ -54,14 +54,15 @@ A full-stack photo gallery application with Spring Boot backend and Vue.js front
 - **Database**: IBM DB2 Community Edition
 - **Authentication**: JWT tokens with Spring Security
 - **Containerization**: Docker with Docker Compose
+- **Deployment**: AWS EC2 with Terraform, Cloudflare DNS, SSL
 
-## 🚀 Quick Start with Docker
+## 🚀 Quick Start
 
 ### Prerequisites
 - Docker Desktop with at least 4GB RAM and 2 CPUs allocated
 - Docker Compose
 
-### Production Deployment
+### Local Development with Docker
 
 1. **Start all services:**
    ```bash
@@ -84,9 +85,7 @@ A full-stack photo gallery application with Spring Boot backend and Vue.js front
    - Login with your credentials
    - Start uploading and managing photos!
 
-### Development Deployment
-
-For development with hot reloading:
+### Development with Hot Reloading
 
 ```bash
 docker compose -f docker-compose.dev.yml up --build
@@ -95,6 +94,56 @@ docker compose -f docker-compose.dev.yml up --build
 - Frontend (dev): http://localhost:5173
 - Backend API: http://localhost:8080
 - **API Documentation**: http://localhost:8080/swagger-ui.html
+
+## 🌐 Production Deployment
+
+### AWS Deployment with Terraform
+
+The application includes a complete CI/CD pipeline for AWS deployment:
+
+#### Prerequisites
+- AWS CLI configured
+- Terraform installed
+- Cloudflare account with domain
+- SSH key pair
+
+#### Quick Deployment
+
+1. **Setup AWS infrastructure:**
+   ```bash
+   # Linux/macOS
+   ./scripts/setup-aws.sh
+   
+   # Windows PowerShell
+   .\scripts\setup-aws.ps1
+   ```
+
+2. **Deploy infrastructure:**
+   ```bash
+   # Linux/macOS
+   ./scripts/terraform-deploy.sh apply
+   
+   # Windows PowerShell
+   .\scripts\terraform-deploy.ps1 -Action apply
+   ```
+
+3. **Deploy application:**
+   ```bash
+   # Linux/macOS
+   ./scripts/deploy-production.sh -ServerIP <ec2-ip> -DomainName yourdomain.com
+   
+   # Windows PowerShell
+   .\scripts\deploy-production.ps1 -ServerIP <ec2-ip> -DomainName yourdomain.com
+   ```
+
+#### Infrastructure Components
+- **VPC and Networking**: Custom VPC with public subnet
+- **Compute**: EC2 instance (Ubuntu 22.04 LTS) with Elastic IP
+- **Security**: Security groups with appropriate firewall rules
+- **DNS**: Cloudflare DNS with automatic SSL certificates
+- **Monitoring**: Health checks and logging
+
+📖 **[Complete Deployment Guide](DEPLOYMENT.md)**
 
 ## 🔌 API Endpoints
 
@@ -117,27 +166,16 @@ docker compose -f docker-compose.dev.yml up --build
 - `DELETE /api/photos/{id}` - Delete photo
 - `DELETE /api/photos/bulk` - Bulk delete photos
 
+### Galleries
+- `GET /api/galleries` - List all galleries
+- `POST /api/galleries` - Create new gallery
+- `GET /api/galleries/{id}` - Get gallery details
+- `PUT /api/galleries/{id}` - Update gallery
+- `DELETE /api/galleries/{id}` - Delete gallery
+- `POST /api/galleries/move-photos` - Move photos between galleries
+
 ### Health
 - `GET /health` - Application health status
-
-## 🎯 Frontend Features
-
-### Core Functionality
-- 📸 **Photo Gallery** - Responsive grid layout with lazy loading
-- 🔐 **Authentication** - Login/register with JWT token management
-- 👤 **Profile Management** - Update user information
-- 📤 **Photo Upload** - Single and bulk upload with drag-and-drop
-- ✏️ **Photo Editing** - Update titles and descriptions
-- 🗑️ **Photo Deletion** - Single and bulk deletion with confirmation
-- 🔍 **Photo Viewing** - Full-screen viewer with zoom and pan
-
-### Advanced Features
-- 🔄 **Real-time updates** - Automatic gallery refresh after operations
-- 📱 **Responsive design** - Optimized for all screen sizes
-- ⚡ **Performance** - Lazy loading, optimized image delivery
-- 🎨 **Modern UI** - Smooth animations, hover effects, dark theme
-- ⌨️ **Keyboard shortcuts** - Navigation and zoom controls
-- 📊 **Pagination** - Configurable page sizes with sticky navigation
 
 ## 🛠️ Local Development
 
@@ -186,7 +224,50 @@ npm run dev
 - **backend**: Same as production
 - **frontend-dev**: Vue.js with hot reloading
 
+## 🔧 Scripts and Automation
+
+### Available Scripts
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `setup-aws.sh/ps1` | Setup AWS infrastructure and prerequisites | `./scripts/setup-aws.sh` |
+| `deploy-local.sh/ps1` | Deploy application locally for testing | `./scripts/deploy-local.sh` |
+| `deploy-production.sh/ps1` | Deploy to production server | `./scripts/deploy-production.sh -ServerIP <ip>` |
+| `terraform-deploy.sh/ps1` | Manage Terraform infrastructure | `./scripts/terraform-deploy.sh apply` |
+| `backup-database.sh/ps1` | Backup database with compression | `./scripts/backup-database.sh` |
+| `monitor.sh/ps1` | Monitor system health and logs | `./scripts/monitor.sh` |
+| `troubleshoot-ami.sh/ps1` | Troubleshoot AWS AMI lookup issues | `./scripts/troubleshoot-ami.sh` |
+
+### PowerShell Support
+
+Windows users have full PowerShell equivalents for all scripts:
+- Cross-platform compatibility
+- Same functionality as bash scripts
+- Windows-specific optimizations
+
+📖 **[PowerShell Scripts Documentation](scripts/README-PowerShell.md)**
+
+## 🔄 CI/CD Pipeline
+
+The application includes a complete GitHub Actions CI/CD pipeline:
+
+### Pipeline Features
+- **Automated Testing**: Runs on pull requests and main branch pushes
+- **Infrastructure as Code**: Terraform manages AWS resources
+- **Automated Deployment**: Deploys to EC2 on main branch pushes
+- **SSL Management**: Automatic Let's Encrypt certificates via Cloudflare
+- **Health Monitoring**: Comprehensive health checks
+
+### Pipeline Stages
+1. **Test Stage**: Backend and frontend testing with DB2
+2. **Deploy Stage**: Infrastructure and application deployment
+3. **Health Check**: Verification of successful deployment
+
+📖 **CI/CD Pipeline**: See the [CI/CD Pipeline](#-cicd-pipeline) section above
+
 ## 🔧 Troubleshooting
+
+### Common Issues
 
 **DB2 container fails to start:**
 - Ensure Docker Desktop has sufficient resources (4GB+ RAM, 2+ CPUs)
@@ -208,6 +289,12 @@ npm run dev
 - Check CORS configuration
 - Verify API URL in frontend environment variables
 
+**AWS Deployment Issues:**
+- Check AWS credentials and permissions
+- Verify Terraform state and configuration
+- Ensure security group rules allow SSH and HTTP traffic
+- Check Cloudflare DNS configuration
+
 **Clean restart:**
 ```bash
 docker compose down -v
@@ -221,10 +308,14 @@ Override in docker-compose.yml:
 - `DB_URL` - JDBC URL (default: jdbc:db2://db2:50000/PHOTODB)
 - `DB_USER` - Username (default: db2inst1)
 - `DB_PASS` - Password (default: passw0rd)
-- `APP_JWT_SECRET` - JWT signing secret (default: your-secret-key)
+- `JWT_SECRET` - JWT signing secret
+- `JWT_EXPIRATION` - Token expiration time
 
 ### Frontend
 - `VITE_API_URL` - Backend API URL (default: http://localhost:8080/api)
+
+### Production
+- `domain_name` - Domain name for SSL and API configuration
 
 ## 📁 Project Structure
 
@@ -247,11 +338,23 @@ Override in docker-compose.yml:
 │   │   ├── stores/          # Pinia stores (auth, photos, modals)
 │   │   ├── services/        # API services
 │   │   ├── router/          # Vue Router with guards
-│   │   └── types/           # TypeScript types
+│   │   └── utils/           # Utility functions
 │   └── Dockerfile
+├── scripts/                 # Deployment and utility scripts
+│   ├── *.sh                 # Bash scripts
+│   ├── *.ps1                # PowerShell scripts
+│   └── README-PowerShell.md # PowerShell documentation
+├── terraform/               # Infrastructure as Code
+│   ├── main.tf              # Main infrastructure
+│   ├── variables.tf         # Variable definitions
+│   └── terraform.tfvars.example
+├── .github/workflows/       # CI/CD pipeline
 ├── docker-compose.yml       # Production deployment
 ├── docker-compose.dev.yml   # Development deployment
-└── README.md
+├── DEPLOYMENT.md            # Deployment guide
+
+├── GALLERY_FEATURE.md       # Gallery features documentation
+└── README.md                # This file
 ```
 
 ## 🎮 Usage Guide
@@ -275,15 +378,73 @@ Override in docker-compose.yml:
 - **Select photos** - Use checkboxes to select multiple photos
 - **Bulk delete** - Delete selected photos with confirmation
 - **Bulk upload** - Upload multiple photos at once
+- **Move photos** - Move selected photos between galleries
+
+## 🛡️ Security Features
+
+### Application Security
+- **JWT Authentication** - Secure token-based authentication
+- **Password Encryption** - BCrypt password hashing
+- **CORS Configuration** - Proper cross-origin resource sharing
+- **Input Validation** - Server-side validation for all inputs
+- **File Upload Security** - Type and size validation
+
+### Infrastructure Security
+- **Security Groups** - Restrictive firewall rules
+- **SSH Access** - Key-based authentication only
+- **SSL/TLS** - Automatic certificate management
+- **Secrets Management** - GitHub Secrets for sensitive data
+- **Network Isolation** - Private container networking
+
+## 📊 Monitoring and Observability
+
+### Health Checks
+- **Backend Health**: `/health` endpoint
+- **Frontend Health**: HTTP response check
+- **Database Health**: DB2 connection test
+- **SSL Certificate**: HTTPS accessibility
+
+### Logging
+- **Application Logs**: Spring Boot and Vue.js logs
+- **Container Logs**: Docker container logs
+- **System Logs**: EC2 instance logs
+- **Pipeline Logs**: GitHub Actions execution logs
+
+### Monitoring Scripts
+```bash
+# Monitor application health
+./scripts/monitor.sh
+
+# Continuous monitoring
+./scripts/monitor.sh --continuous
+
+# PowerShell equivalent
+.\scripts\monitor.ps1 -Continuous
+```
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Test thoroughly
+4. Test thoroughly (locally and with CI/CD)
 5. Submit a pull request
+
+### Development Guidelines
+- Follow existing code style and patterns
+- Add tests for new features
+- Update documentation as needed
+- Ensure CI/CD pipeline passes
 
 ## 📄 License
 
 This project is licensed under the MIT License.
+
+## 📚 Additional Resources
+
+- [Spring Boot Documentation](https://spring.io/projects/spring-boot)
+- [Vue.js Documentation](https://vuejs.org/)
+- [Docker Documentation](https://docs.docker.com/)
+- [Terraform AWS Provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
+- [Cloudflare Documentation](https://developers.cloudflare.com/)
+- [GitHub Actions Documentation](https://docs.github.com/en/actions)
