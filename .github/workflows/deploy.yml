@@ -398,6 +398,20 @@ jobs:
           echo "Docker Compose version:"
           sudo docker compose version || sudo docker-compose --version
           
+          # Check what's using port 80
+          echo "Checking what's using port 80..."
+          sudo netstat -tlnp | grep :80 || echo "Port 80 is free"
+          sudo lsof -i :80 || echo "No processes found using port 80"
+          
+          # Stop any existing Nginx service on the host that might be using port 80
+          echo "Stopping any existing Nginx service on host..."
+          sudo systemctl stop nginx || true
+          sudo systemctl disable nginx || true
+          
+          # Kill any processes still using port 80
+          echo "Killing any processes still using port 80..."
+          sudo fuser -k 80/tcp || true
+          
           # Stop existing containers
           echo "Stopping existing containers..."
           sudo docker compose -f docker-compose.prod.yml down || sudo docker-compose -f docker-compose.prod.yml down || true
