@@ -409,19 +409,53 @@ jobs:
           # Wait for services to be ready
           echo "Waiting for services to start..."
           sleep 30
+          
+          # Debug: Check container status
+          echo "Container status:"
+          sudo docker compose -f docker-compose.prod.yml ps
+          
+          # Debug: Check nginx configuration in frontend container
+          echo "Checking nginx configuration in frontend container:"
+          sudo docker exec frontend cat /etc/nginx/nginx.conf | head -20
+          
+          # Debug: Check if nginx is listening on port 80
+          echo "Checking if nginx is listening on port 80:"
+          sudo docker exec frontend netstat -tlnp | grep :80 || echo "Port 80 not found in netstat"
+          
+          # Debug: Check nginx error logs
+          echo "Nginx error logs:"
+          sudo docker logs frontend 2>&1 | tail -10
         EOF
 
     - name: Health Check
       run: |
         echo "Performing health check..."
-        for i in {1..10}; do
-          if curl -f -s http://${{ steps.get-ip.outputs.instance_ip }}/health; then
-            echo "Health check passed!"
+        echo "Checking backend health directly..."
+        for i in {1..5}; do
+          if curl -f -s http://${{ steps.get-ip.outputs.instance_ip }}:8080/health; then
+            echo "Backend health check passed!"
             break
           fi
-          echo "Health check attempt $i failed, retrying in 30 seconds..."
-          sleep 30
+          echo "Backend health check attempt $i failed, retrying in 10 seconds..."
+          sleep 10
         done
+        
+        echo "Checking frontend health..."
+        for i in {1..5}; do
+          if curl -f -s http://${{ steps.get-ip.outputs.instance_ip }}/health; then
+            echo "Frontend health check passed!"
+            break
+          fi
+          echo "Frontend health check attempt $i failed, retrying in 10 seconds..."
+          sleep 10
+        done
+        
+        echo "Checking if frontend is serving the app..."
+        if curl -f -s http://${{ steps.get-ip.outputs.instance_ip }}/ | grep -q "VueDB2SpringBoot"; then
+          echo "Frontend app is being served correctly!"
+        else
+          echo "Frontend app might not be serving correctly"
+        fi
 
     - name: Notify deployment status
       if: always()
