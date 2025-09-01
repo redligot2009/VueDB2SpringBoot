@@ -138,13 +138,55 @@ jobs:
     - name: Terraform Init
       run: |
         cd terraform
-        terraform init
+        # Initialize with S3 backend for state persistence
+        terraform init \
+          -backend-config="bucket=${{ secrets.TERRAFORM_STATE_BUCKET }}" \
+          -backend-config="key=vuedb2springboot/terraform.tfstate" \
+          -backend-config="region=us-east-1" \
+          -backend-config="encrypt=true"
+
+    - name: Check existing infrastructure
+      run: |
+        cd terraform
+        echo "Checking existing Terraform state..."
+        terraform show || echo "No existing state found"
+        echo ""
+        echo "Checking existing EC2 instances..."
+        aws ec2 describe-instances --filters "Name=tag:Name,Values=vuedb2springboot-web-server" --query 'Reservations[].Instances[?State.Name!=`terminated`].{InstanceId:InstanceId,State:State.Name,PublicIp:PublicIpAddress}' --output table
 
     - name: Handle existing key pair
       run: |
         cd terraform
         # Delete existing key pair if it exists
         aws ec2 delete-key-pair --key-name vuedb2springboot-key || echo "Key pair doesn't exist, will be created"
+
+    - name: Handle EIP limit
+      run: |
+        cd terraform
+        # Release unassociated EIPs to free up quota
+        aws ec2 describe-addresses --query 'Addresses[?AssociationId==null].AllocationId' --output text | while read eip; do
+          if [ ! -z "$eip" ]; then
+            echo "Releasing unassociated EIP: $eip"
+            aws ec2 release-address --allocation-id "$eip" || echo "Failed to release EIP: $eip"
+          fi
+        done
+
+    - name: Clean up orphaned instances
+      run: |
+        cd terraform
+        # Find instances with our project name that are not in Terraform state
+        echo "Checking for orphaned EC2 instances..."
+        ORPHANED_INSTANCES=$(aws ec2 describe-instances \
+          --filters "Name=tag:Name,Values=vuedb2springboot-web-server" \
+          --query 'Reservations[].Instances[?State.Name!=`terminated`].InstanceId' \
+          --output text)
+        
+        if [ ! -z "$ORPHANED_INSTANCES" ]; then
+          echo "Found potentially orphaned instances: $ORPHANED_INSTANCES"
+          echo "Note: These will be managed by Terraform if they exist in state"
+        else
+          echo "No orphaned instances found"
+        fi
 
     - name: Terraform Plan
       run: |

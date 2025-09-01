@@ -312,6 +312,7 @@ npm run test:unit
 
 #### 2. **Infrastructure Provisioning**
 - **Terraform Init**: Initializes Terraform backend
+- **Handle EIP Limit**: Releases unassociated Elastic IPs to free up quota
 - **Terraform Plan**: Shows planned infrastructure changes
 - **Terraform Apply**: Creates/updates AWS infrastructure:
   - EC2 instance (t3.micro)
@@ -433,6 +434,7 @@ on:
 | `CLOUDFLARE_ZONE_ID` | Cloudflare zone ID | `2e75f65a...` |
 | `DOMAIN_NAME` | Domain name | `redligot.dev` |
 | `SSH_PRIVATE_KEY` | SSH private key | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
+| `TERRAFORM_STATE_BUCKET` | S3 bucket for Terraform state | `my-terraform-state-bucket` |
 
 ### 🎯 Success Criteria
 
@@ -447,6 +449,8 @@ The pipeline is considered successful when:
 
 **Common Issues**:
 - **VPC Limit Exceeded**: Pipeline now uses default VPC to avoid quota limits
+- **EIP Limit Exceeded**: Pipeline automatically releases unassociated EIPs to free up quota
+- **Multiple EC2 Instances**: Fixed with S3 backend for Terraform state persistence
 - **Docker Installation Failures**: Multiple fallback strategies implemented
 - **Package Manager Conflicts**: Automatic lock resolution
 - **SSH Key Conflicts**: Automatic cleanup of existing key pairs
