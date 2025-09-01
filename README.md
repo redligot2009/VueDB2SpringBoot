@@ -249,21 +249,213 @@ Windows users have full PowerShell equivalents for all scripts:
 
 ## 🔄 CI/CD Pipeline
 
-The application includes a complete GitHub Actions CI/CD pipeline:
+The application includes a complete GitHub Actions CI/CD pipeline that automatically tests, builds, and deploys the application to AWS.
 
-### Pipeline Features
-- **Automated Testing**: Runs on pull requests and main branch pushes
-- **Infrastructure as Code**: Terraform manages AWS resources
-- **Automated Deployment**: Deploys to EC2 on main branch pushes
-- **SSL Management**: Automatic Let's Encrypt certificates via Cloudflare
-- **Health Monitoring**: Comprehensive health checks
+### 🚀 Pipeline Overview
 
-### Pipeline Stages
-1. **Test Stage**: Backend and frontend testing with DB2
-2. **Deploy Stage**: Infrastructure and application deployment
-3. **Health Check**: Verification of successful deployment
+The CI/CD pipeline consists of two main jobs that run on every push to the `main` branch:
 
-📖 **CI/CD Pipeline**: See the [CI/CD Pipeline](#-cicd-pipeline) section above
+1. **Test Job** - Validates code quality and functionality
+2. **Deploy Job** - Provisions infrastructure and deploys the application
+
+### 🧪 Test Job (`test`)
+
+**Triggers**: Every push to `main` branch and pull requests
+
+**Services**:
+- **DB2 Database**: IBM DB2 Community Edition container for backend testing
+  - Image: `icr.io/db2_community/db2:11.5.8.0`
+  - Port: `50000`
+  - Environment: Pre-configured with test database `PHOTODB`
+  - Health checks: TCP port connectivity with 120s startup period
+
+**Steps**:
+1. **Checkout Code**: Downloads the repository code
+2. **Setup Java 21**: Installs Temurin JDK 21 for Spring Boot
+3. **Cache Maven Dependencies**: Speeds up builds by caching `.m2` directory
+4. **Wait for DB2**: Ensures database is ready before testing
+5. **Run Backend Tests**: Executes Maven tests with DB2 profile
+6. **Setup Node.js**: Installs Node.js 20 for frontend testing
+7. **Cache Node Modules**: Caches `node_modules` for faster builds
+8. **Install Frontend Dependencies**: Runs `npm ci` for production installs
+9. **Run Frontend Tests**: Executes Vue.js unit tests
+
+**Test Configuration**:
+```yaml
+# Backend tests with DB2
+mvn clean test -Dspring.profiles.active=db2 \
+  -Ddb.url=jdbc:db2://localhost:50000/PHOTODB \
+  -Ddb.user=db2inst1 -Ddb.pass=passw0rd
+
+# Frontend tests
+npm run test:unit
+```
+
+### 🚀 Deploy Job (`deploy`)
+
+**Triggers**: Only on successful test completion and `main` branch pushes
+
+**Prerequisites**: 
+- AWS credentials configured as GitHub Secrets
+- Cloudflare API token and zone ID
+- SSH private key for EC2 access
+
+**Steps**:
+
+#### 1. **Infrastructure Setup**
+- **Checkout Code**: Downloads repository
+- **Configure AWS Credentials**: Sets up AWS CLI access
+- **Setup Terraform**: Downloads and configures Terraform
+- **Setup SSH Key for Terraform**: Creates SSH key from GitHub Secret
+- **Get SSH Public Key**: Extracts public key for AWS key pair
+- **Handle Existing Key Pair**: Removes old AWS key pairs to prevent conflicts
+
+#### 2. **Infrastructure Provisioning**
+- **Terraform Init**: Initializes Terraform backend
+- **Terraform Plan**: Shows planned infrastructure changes
+- **Terraform Apply**: Creates/updates AWS infrastructure:
+  - EC2 instance (t3.micro)
+  - Security groups (HTTP/HTTPS/SSH access)
+  - Elastic IP address
+  - Cloudflare DNS record
+  - Uses default VPC to avoid quota limits
+
+#### 3. **Application Deployment**
+- **Get EC2 IP**: Retrieves the public IP of the created instance
+- **Wait for Instance**: Ensures EC2 instance is running
+- **Setup SSH Key for Deployment**: Configures SSH access
+- **Deploy Application**: 
+  - Copies application files to EC2
+  - Installs Docker and Docker Compose if missing
+  - Handles package manager conflicts
+  - Creates/updates environment configuration
+  - Builds and starts Docker containers
+
+#### 4. **Verification**
+- **Health Check**: Verifies application is responding
+- **Notify Status**: Reports deployment success/failure
+
+### 🔧 Deployment Process Details
+
+#### **File Transfer**
+```bash
+# Copy files to temporary directory (avoids permission issues)
+rsync -avz --delete \
+  --exclude='.git' --exclude='node_modules' --exclude='target' \
+  ./ ubuntu@$EC2_IP:/tmp/vuedb2springboot/
+
+# Move to final location with sudo
+sudo mkdir -p /opt/vuedb2springboot
+sudo mv /tmp/vuedb2springboot/* /opt/vuedb2springboot/
+sudo chown -R ubuntu:ubuntu /opt/vuedb2springboot
+```
+
+#### **Docker Installation & Management**
+```bash
+# Handle package conflicts
+while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+  sleep 5
+done
+
+# Install Docker if missing
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo systemctl start docker
+
+# Install Docker Compose (both v1 and v2)
+sudo mkdir -p /usr/local/lib/docker/cli-plugins
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/lib/docker/cli-plugins/docker-compose
+sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+```
+
+#### **Application Startup**
+```bash
+# Create/update environment file
+echo "domain_name=redligot.dev" > .env
+
+# Stop existing containers
+sudo docker compose -f docker-compose.prod.yml down || true
+
+# Build and start new containers
+sudo docker compose -f docker-compose.prod.yml up -d --build
+
+# Wait for services to be ready
+sleep 30
+```
+
+### 🔐 Security Features
+
+- **Secrets Management**: All sensitive data stored in GitHub Secrets
+- **SSH Key Rotation**: Handles existing key pairs to prevent conflicts
+- **Environment Isolation**: Production environment variables managed securely
+- **Network Security**: Security groups restrict access to necessary ports only
+- **SSL/TLS**: Cloudflare proxy provides automatic SSL termination
+
+### 📊 Monitoring & Health Checks
+
+- **Service Health**: Docker container status monitoring
+- **Application Health**: HTTP endpoint health checks
+- **Infrastructure Health**: EC2 instance status verification
+- **DNS Health**: Cloudflare DNS record validation
+
+### 🚨 Error Handling
+
+- **Package Conflicts**: Waits for and clears package manager locks
+- **Docker Issues**: Multiple fallback strategies for Docker installation
+- **Network Issues**: Retry logic for health checks
+- **Infrastructure Conflicts**: Handles existing AWS resources gracefully
+
+### 📈 Performance Optimizations
+
+- **Caching**: Maven and npm dependency caching
+- **Parallel Jobs**: Test and deploy jobs run independently
+- **Resource Management**: Efficient Docker container management
+- **Build Optimization**: Only rebuilds changed components
+
+### 🔄 Workflow Triggers
+
+```yaml
+# Runs on every push to main branch
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+```
+
+### 📋 Required GitHub Secrets
+
+| Secret Name | Description | Example |
+|-------------|-------------|---------|
+| `AWS_ACCESS_KEY_ID` | AWS access key | `AKIA...` |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key | `wJalr...` |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API token | `abc123...` |
+| `CLOUDFLARE_ZONE_ID` | Cloudflare zone ID | `2e75f65a...` |
+| `DOMAIN_NAME` | Domain name | `redligot.dev` |
+| `SSH_PRIVATE_KEY` | SSH private key | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
+
+### 🎯 Success Criteria
+
+The pipeline is considered successful when:
+- ✅ All tests pass (backend and frontend)
+- ✅ Infrastructure is provisioned without errors
+- ✅ Application is deployed and accessible
+- ✅ Health checks return successful responses
+- ✅ DNS is properly configured
+
+### 🔧 Troubleshooting
+
+**Common Issues**:
+- **VPC Limit Exceeded**: Pipeline now uses default VPC to avoid quota limits
+- **Docker Installation Failures**: Multiple fallback strategies implemented
+- **Package Manager Conflicts**: Automatic lock resolution
+- **SSH Key Conflicts**: Automatic cleanup of existing key pairs
+
+**Debug Information**:
+- All steps include detailed logging
+- Version information for all tools
+- Health check results with retry logic
+- Infrastructure state validation
 
 ## 🔧 Troubleshooting
 
