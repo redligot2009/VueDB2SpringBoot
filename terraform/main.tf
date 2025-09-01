@@ -198,6 +198,11 @@ resource "cloudflare_record" "web" {
   type    = "A"
   ttl     = 1 # Must be 1 when proxied is true
   proxied = true # Enable Cloudflare proxy for SSL and performance
+
+  # Force replacement when IP changes to avoid duplicate records
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # Outputs

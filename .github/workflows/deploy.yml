@@ -187,6 +187,29 @@ jobs:
         # Delete existing key pair if it exists
         aws ec2 delete-key-pair --key-name vuedb2springboot-key || echo "Key pair doesn't exist, will be created"
 
+    - name: Clean up existing Cloudflare A records
+      run: |
+        cd terraform
+        echo "Cleaning up existing Cloudflare A records for ${{ secrets.DOMAIN_NAME }}..."
+        
+        # Get existing A records for the domain
+        EXISTING_RECORDS=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records?type=A&name=${{ secrets.DOMAIN_NAME }}" \
+          -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+          -H "Content-Type: application/json" | jq -r '.result[].id' 2>/dev/null || echo "")
+        
+        if [ ! -z "$EXISTING_RECORDS" ]; then
+          echo "Found existing A records: $EXISTING_RECORDS"
+          for record_id in $EXISTING_RECORDS; do
+            echo "Deleting A record: $record_id"
+            curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/$record_id" \
+              -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+              -H "Content-Type: application/json" || echo "Failed to delete record $record_id"
+          done
+          echo "Existing A records cleaned up"
+        else
+          echo "No existing A records found"
+        fi
+
     - name: Handle EIP limit
       run: |
         cd terraform
@@ -451,7 +474,7 @@ jobs:
           
           # Debug: Check nginx access logs
           echo "Nginx access logs:"
-          sudo docker exec frontend tail -5 /var/log/nginx/access.log || echo "No access logs yet"
+          timeout 5 sudo docker exec frontend tail -5 /var/log/nginx/access.log 2>/dev/null || echo "No access logs yet or log file doesn't exist"
         EOF
 
     - name: Health Check
@@ -501,6 +524,14 @@ jobs:
         echo "Testing health endpoint..."
         HEALTH_RESPONSE=$(curl -f -s http://${{ steps.get-ip.outputs.instance_ip }}/health || echo "FAILED")
         echo "Health endpoint response: $HEALTH_RESPONSE"
+        
+        # Check DNS resolution
+        echo "Checking DNS resolution for ${{ secrets.DOMAIN_NAME }}..."
+        nslookup ${{ secrets.DOMAIN_NAME }} || echo "DNS lookup failed"
+        
+        # Test direct IP access (bypassing Cloudflare)
+        echo "Testing direct IP access (bypassing Cloudflare)..."
+        curl -f -s -H "Host: ${{ secrets.DOMAIN_NAME }}" http://${{ steps.get-ip.outputs.instance_ip }}/health || echo "Direct IP access failed"
 
     - name: Notify deployment status
       if: always()
