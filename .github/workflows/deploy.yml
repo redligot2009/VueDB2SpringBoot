@@ -140,6 +140,12 @@ jobs:
         cd terraform
         terraform init
 
+    - name: Handle existing key pair
+      run: |
+        cd terraform
+        # Delete existing key pair if it exists
+        aws ec2 delete-key-pair --key-name vuedb2springboot-key || echo "Key pair doesn't exist, will be created"
+
     - name: Terraform Plan
       run: |
         cd terraform
