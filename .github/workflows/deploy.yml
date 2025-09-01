@@ -461,9 +461,9 @@ jobs:
         
 
         
-        echo "Checking backend health directly..."
+        echo "Checking backend health through frontend proxy..."
         for i in {1..5}; do
-          if curl -f -s http://${{ steps.get-ip.outputs.instance_ip }}:8080/health; then
+          if curl -f -s http://${{ steps.get-ip.outputs.instance_ip }}/api/health; then
             echo "Backend health check passed!"
             break
           fi
