@@ -121,6 +121,20 @@ jobs:
       with:
         terraform_version: 1.6.0
 
+    - name: Setup SSH key for Terraform
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+
+    - name: Get SSH public key content
+      id: ssh-public-key
+      run: |
+        # Extract public key from private key
+        ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
+        SSH_PUBLIC_KEY=$(cat ~/.ssh/id_rsa.pub)
+        echo "ssh_public_key_content=$SSH_PUBLIC_KEY" >> $GITHUB_OUTPUT
+
     - name: Terraform Init
       run: |
         cd terraform
@@ -129,12 +143,20 @@ jobs:
     - name: Terraform Plan
       run: |
         cd terraform
-        terraform plan -var="cloudflare_api_token=${{ secrets.CLOUDFLARE_API_TOKEN }}" -var="cloudflare_zone_id=${{ secrets.CLOUDFLARE_ZONE_ID }}" -var="domain_name=${{ secrets.DOMAIN_NAME }}"
+        terraform plan \
+          -var="cloudflare_api_token=${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+          -var="cloudflare_zone_id=${{ secrets.CLOUDFLARE_ZONE_ID }}" \
+          -var="domain_name=${{ secrets.DOMAIN_NAME }}" \
+          -var="ssh_public_key_content=${{ steps.ssh-public-key.outputs.ssh_public_key_content }}"
 
     - name: Terraform Apply
       run: |
         cd terraform
-        terraform apply -auto-approve -var="cloudflare_api_token=${{ secrets.CLOUDFLARE_API_TOKEN }}" -var="cloudflare_zone_id=${{ secrets.CLOUDFLARE_ZONE_ID }}" -var="domain_name=${{ secrets.DOMAIN_NAME }}"
+        terraform apply -auto-approve \
+          -var="cloudflare_api_token=${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+          -var="cloudflare_zone_id=${{ secrets.CLOUDFLARE_ZONE_ID }}" \
+          -var="domain_name=${{ secrets.DOMAIN_NAME }}" \
+          -var="ssh_public_key_content=${{ steps.ssh-public-key.outputs.ssh_public_key_content }}"
 
     - name: Get EC2 Instance IP
       id: get-ip
@@ -155,11 +177,8 @@ jobs:
           sleep 30
         done
 
-    - name: Setup SSH key
+    - name: Setup SSH key for deployment
       run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ steps.get-ip.outputs.instance_ip }} >> ~/.ssh/known_hosts
 
     - name: Deploy application

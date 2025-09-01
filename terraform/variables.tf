@@ -24,9 +24,15 @@ variable "domain_name" {
 }
 
 variable "ssh_public_key_path" {
-  description = "Path to the SSH public key file"
+  description = "Path to the SSH public key file (for local development)"
   type        = string
   default     = "~/.ssh/id_rsa.pub"
+}
+
+variable "ssh_public_key_content" {
+  description = "SSH public key content (for CI/CD)"
+  type        = string
+  default     = ""
 }
 
 variable "cloudflare_api_token" {
