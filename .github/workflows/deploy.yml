@@ -152,7 +152,20 @@ jobs:
         terraform show || echo "No existing state found"
         echo ""
         echo "Checking existing EC2 instances..."
-        aws ec2 describe-instances --filters "Name=tag:Name,Values=vuedb2springboot-web-server" --query 'Reservations[].Instances[?State.Name!=`terminated`].{InstanceId:InstanceId,State:State.Name,PublicIp:PublicIpAddress}' --output table
+        aws ec2 describe-instances \
+          --filters "Name=tag:Name,Values=vuedb2springboot-web-server" \
+          --query 'Reservations[].Instances[?State.Name!=`terminated`]' \
+          --output json > /tmp/instances.json
+        
+        INSTANCE_COUNT=$(jq length /tmp/instances.json)
+        echo "Found $INSTANCE_COUNT existing instances"
+        
+        if [ "$INSTANCE_COUNT" -gt 0 ]; then
+          echo "Existing instances:"
+          jq -r '.[] | "  - \(.InstanceId) (\(.State.Name)) - \(.PublicIpAddress // "No public IP")"' /tmp/instances.json
+        else
+          echo "No existing instances found"
+        fi
 
     - name: Handle existing key pair
       run: |
@@ -176,16 +189,43 @@ jobs:
         cd terraform
         # Find instances with our project name that are not in Terraform state
         echo "Checking for orphaned EC2 instances..."
-        ORPHANED_INSTANCES=$(aws ec2 describe-instances \
-          --filters "Name=tag:Name,Values=vuedb2springboot-web-server" \
-          --query 'Reservations[].Instances[?State.Name!=`terminated`].InstanceId' \
-          --output text)
         
-        if [ ! -z "$ORPHANED_INSTANCES" ]; then
-          echo "Found potentially orphaned instances: $ORPHANED_INSTANCES"
-          echo "Note: These will be managed by Terraform if they exist in state"
+        # Get all instances with our tag
+        aws ec2 describe-instances \
+          --filters "Name=tag:Name,Values=vuedb2springboot-web-server" \
+          --query 'Reservations[].Instances[?State.Name!=`terminated`]' \
+          --output json > /tmp/all-instances.json
+        
+        INSTANCE_COUNT=$(jq length /tmp/all-instances.json)
+        echo "Found $INSTANCE_COUNT instances with project tag"
+        
+        if [ "$INSTANCE_COUNT" -gt 0 ]; then
+          echo "Instances found:"
+          jq -r '.[] | "  - \(.InstanceId) (\(.State.Name)) - \(.PublicIpAddress // "No public IP")"' /tmp/all-instances.json
+          echo ""
+          echo "Note: Terraform will manage these instances if they exist in state"
+          echo "If they are truly orphaned, they will be replaced by new instances"
         else
-          echo "No orphaned instances found"
+          echo "No instances found with project tag"
+        fi
+
+    - name: Handle orphaned instances
+      run: |
+        cd terraform
+        # Check if we have orphaned instances and empty state
+        if [ -f /tmp/all-instances.json ]; then
+          INSTANCE_COUNT=$(jq length /tmp/all-instances.json)
+          if [ "$INSTANCE_COUNT" -gt 0 ]; then
+            echo "Found $INSTANCE_COUNT existing instances but Terraform state is empty"
+            echo "This suggests orphaned instances from previous deployments"
+            echo ""
+            echo "Strategy: Let Terraform create new instances and manage them properly"
+            echo "The old instances will remain but won't be managed by Terraform"
+            echo "You can manually terminate them later if needed"
+            echo ""
+            echo "Instances that will remain unmanaged:"
+            jq -r '.[] | "  - \(.InstanceId) (\(.State.Name))"' /tmp/all-instances.json
+          fi
         fi
 
     - name: Terraform Plan
