@@ -162,6 +162,11 @@ jobs:
         
         if [ "$INSTANCE_COUNT" -gt 0 ]; then
           echo "Existing instances:"
+          # Debug: show the structure of the first instance
+          echo "Debug - First instance structure:"
+          jq '.[0]' /tmp/instances.json
+          echo ""
+          echo "Instance list:"
           jq -r '.[] | "  - \(.InstanceId) (\(.State.Name)) - \(.PublicIpAddress // "No public IP")"' /tmp/instances.json
         else
           echo "No existing instances found"
