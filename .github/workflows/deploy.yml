@@ -209,21 +209,34 @@ jobs:
         ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.get-ip.outputs.instance_ip }} << 'EOF'
           cd /opt/${{ env.PROJECT_NAME }}
           
-          # Update environment variables
-          sed -i "s/\${domain_name}/${{ secrets.DOMAIN_NAME }}/g" docker-compose.prod.yml
+          # Create .env file if it doesn't exist
+          if [ ! -f .env ]; then
+            echo "domain_name=${{ secrets.DOMAIN_NAME }}" > .env
+          else
+            # Update domain_name in .env
+            if grep -q "domain_name=" .env; then
+              sed -i "s/domain_name=.*/domain_name=${{ secrets.DOMAIN_NAME }}/" .env
+            else
+              echo "domain_name=${{ secrets.DOMAIN_NAME }}" >> .env
+            fi
+          fi
           
-          # Deploy
-          ./deploy.sh
+          # Stop existing containers
+          sudo docker compose -f docker-compose.prod.yml down || true
           
-          # Setup SSL certificate
-          sudo certbot --nginx -d ${{ secrets.DOMAIN_NAME }} --non-interactive --agree-tos --email admin@${{ secrets.DOMAIN_NAME }} --redirect
+          # Build and start new containers
+          sudo docker compose -f docker-compose.prod.yml up -d --build
+          
+          # Wait for services to be ready
+          echo "Waiting for services to start..."
+          sleep 30
         EOF
 
     - name: Health Check
       run: |
         echo "Performing health check..."
         for i in {1..10}; do
-          if curl -f -s https://${{ secrets.DOMAIN_NAME }}/health; then
+          if curl -f -s http://${{ steps.get-ip.outputs.instance_ip }}/health; then
             echo "Health check passed!"
             break
           fi
