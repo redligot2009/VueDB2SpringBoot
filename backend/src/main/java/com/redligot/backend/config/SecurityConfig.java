@@ -51,7 +51,7 @@ public class SecurityConfig {
 			.authorizeHttpRequests(authz -> authz
 				.requestMatchers("/api/auth/signin").permitAll()
 				.requestMatchers("/api/auth/signup").permitAll()
-				.requestMatchers("/health").permitAll()
+				.requestMatchers("/api/health").permitAll()
 				.requestMatchers("/actuator/**").permitAll()
 				// Swagger UI and OpenAPI documentation
 				.requestMatchers("/swagger-ui/**").permitAll()

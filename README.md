@@ -77,7 +77,7 @@ A full-stack photo gallery application with Spring Boot backend and Vue.js front
 3. **Access the application:**
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:8080
-   - Health check: http://localhost:8080/health
+   - Health check: http://localhost:8080/api/health
    - **API Documentation**: http://localhost:8080/swagger-ui.html
 
 4. **First-time setup:**
@@ -175,7 +175,7 @@ The application includes a complete CI/CD pipeline for AWS deployment:
 - `POST /api/galleries/move-photos` - Move photos between galleries
 
 ### Health
-- `GET /health` - Application health status
+- `GET /api/health` - Application health status
 
 ## 🛠️ Local Development
 
@@ -595,7 +595,7 @@ Override in docker-compose.yml:
 ## 📊 Monitoring and Observability
 
 ### Health Checks
-- **Backend Health**: `/health` endpoint
+- **Backend Health**: `/api/health` endpoint
 - **Frontend Health**: HTTP response check
 - **Database Health**: DB2 connection test
 - **SSL Certificate**: HTTPS accessibility

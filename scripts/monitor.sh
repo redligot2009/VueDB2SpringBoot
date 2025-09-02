@@ -29,7 +29,7 @@ echo ""
 echo "Application Health Checks:"
 
 # Backend health
-if curl -f -s http://localhost:8080/health > /dev/null; then
+if curl -f -s http://localhost:8080/api/health > /dev/null; then
     echo "Backend: Healthy"
 else
     echo "Backend: Unhealthy"

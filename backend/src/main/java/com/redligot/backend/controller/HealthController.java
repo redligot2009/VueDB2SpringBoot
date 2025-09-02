@@ -25,7 +25,7 @@ import java.util.Map;
  * "SELECT 1 FROM SYSIBM.SYSDUMMY1" to verify connectivity.</p>
  */
 @RestController
-@RequestMapping("/health")
+@RequestMapping("/api/health")
 @Tag(name = "Health", description = "Application health check APIs")
 public class HealthController {
 

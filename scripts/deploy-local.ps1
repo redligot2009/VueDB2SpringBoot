@@ -70,7 +70,7 @@ try {
 # Test backend health
 Write-Host "Testing backend health..." -ForegroundColor Yellow
 try {
-    $response = Invoke-WebRequest -Uri "http://localhost:8080/health" -UseBasicParsing -TimeoutSec 10
+    $response = Invoke-WebRequest -Uri "http://localhost:8080/api/health" -UseBasicParsing -TimeoutSec 10
     if ($response.StatusCode -eq 200) {
         Write-Host "Backend is healthy" -ForegroundColor Green
     } else {
@@ -102,5 +102,5 @@ try {
 Write-Host "Local deployment successful!" -ForegroundColor Green
 Write-Host "Frontend: http://localhost:3000" -ForegroundColor Cyan
 Write-Host "Backend API: http://localhost:8080/api" -ForegroundColor Cyan
-Write-Host "Health Check: http://localhost:8080/health" -ForegroundColor Cyan
+Write-Host "Health Check: http://localhost:8080/api/health" -ForegroundColor Cyan
 Write-Host "API Docs: http://localhost:8080/swagger-ui.html" -ForegroundColor Cyan

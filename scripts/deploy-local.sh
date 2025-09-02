@@ -35,7 +35,7 @@ docker-compose ps
 
 # Test backend health
 echo "Testing backend health..."
-if curl -f -s http://localhost:8080/health; then
+if curl -f -s http://localhost:8080/api/health; then
     echo "Backend is healthy"
 else
     echo "ERROR: Backend health check failed"
@@ -56,5 +56,5 @@ fi
 echo "Local deployment successful!"
 echo "Frontend: http://localhost:3000"
 echo "Backend API: http://localhost:8080/api"
-echo "Health Check: http://localhost:8080/health"
+echo "Health Check: http://localhost:8080/api/health"
 echo "API Docs: http://localhost:8080/swagger-ui.html"

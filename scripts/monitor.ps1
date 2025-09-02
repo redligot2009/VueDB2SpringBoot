@@ -72,7 +72,7 @@ function Test-ApplicationHealth {
     
     # Backend health
     try {
-        $response = Invoke-WebRequest -Uri "http://localhost:8080/health" -UseBasicParsing -TimeoutSec 5
+        $response = Invoke-WebRequest -Uri "http://localhost:8080/api/health" -UseBasicParsing -TimeoutSec 5
         if ($response.StatusCode -eq 200) {
             Write-Host "✅ Backend: Healthy" -ForegroundColor Green
         } else {
