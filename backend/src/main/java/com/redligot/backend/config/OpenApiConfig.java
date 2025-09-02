@@ -32,7 +32,7 @@ public class OpenApiConfig {
                                 .url("https://opensource.org/licenses/MIT")))
                 .servers(List.of(
                         new Server().url("http://localhost:8080").description("Local Development Server"),
-                        new Server().url("https://api.photogallery.com").description("Production Server")
+                        new Server().url("https://photogallery.redligot.dev/api").description("Production Server")
                 ))
                 .addSecurityItem(new SecurityRequirement().addList("Bearer Authentication"))
                 .components(new Components()
