@@ -35,8 +35,8 @@ services:
       - DB_URL=jdbc:db2://db2:50000/PHOTODB
       - DB_USER=db2inst1
       - DB_PASS=passw0rd
-      - JWT_SECRET=your-super-secure-jwt-secret-key-that-is-at-least-64-characters-long-for-hs512-algorithm
-      - JWT_EXPIRATION=86400000
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION}
     restart: unless-stopped
     networks:
       - app-network
