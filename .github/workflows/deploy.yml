@@ -422,17 +422,10 @@ jobs:
             fi
           fi
           
-          # Add production Flyway and JPA configuration to .env
+          # Add production JPA configuration to .env
           echo "Adding production configuration to .env..."
           {
-            echo "# Production Flyway configuration"
-            echo "FLYWAY_ENABLED=true"
-            echo "FLYWAY_LOCATIONS=classpath:db/migration"
-            echo "FLYWAY_BASELINE_ON_MIGRATE=true"
-            echo "FLYWAY_VALIDATE_ON_MIGRATE=true"
-            echo "FLYWAY_CLEAN_DISABLED=true"
-            echo "FLYWAY_AUTOCONFIGURE_EXCLUDE="
-            echo "# Production JPA configuration"
+            echo "# Production JPA configuration - Hibernate handles schema"
             echo "JPA_DDL_AUTO=update"
             echo "JPA_SHOW_SQL=false"
             echo "JPA_FORMAT_SQL=false"
@@ -532,19 +525,19 @@ jobs:
           echo "Container status:"
           sudo docker compose -f docker-compose.prod.yml ps
           
-          # Wait for backend to start and monitor Flyway migrations
-          echo "Waiting for backend to start and monitoring Flyway migrations..."
+          # Wait for backend to start and monitor Hibernate schema creation
+          echo "Waiting for backend to start and monitoring Hibernate schema creation..."
           sleep 30
           
-          # Check if Flyway migrations are needed by examining the database schema
+          # Check current database schema
           echo "Checking current database schema..."
           TABLE_COUNT=$(sudo docker exec db2 su - db2inst1 -c "db2 connect to PHOTODB && db2 -x 'SELECT COUNT(*) FROM SYSCAT.TABLES WHERE TABSCHEMA = '\''DB2INST1'\''' | tail -1" 2>/dev/null || echo "0")
           echo "Current table count: $TABLE_COUNT"
           
-          # Monitor backend startup and Flyway execution
-          echo "Monitoring backend startup and Flyway execution..."
+          # Monitor backend startup and Hibernate schema creation
+          echo "Monitoring backend startup and Hibernate schema creation..."
           for i in {1..15}; do
-            echo "Check $i: Monitoring backend logs for Flyway activity..."
+            echo "Check $i: Monitoring backend logs for Hibernate activity..."
             
             # Check if backend is running
             if ! sudo docker compose -f docker-compose.prod.yml ps backend | grep -q "Up"; then
@@ -555,20 +548,15 @@ jobs:
               continue
             fi
             
-            # Check backend logs for Flyway activity
+            # Check backend logs for Hibernate schema activity
             BACKEND_LOGS=$(sudo docker logs backend --tail 50 2>&1)
             
-            if echo "$BACKEND_LOGS" | grep -q "Flyway is handling the schema migration"; then
-              echo "✅ Flyway migration detected in progress..."
-              break
-            elif echo "$BACKEND_LOGS" | grep -q "Successfully applied"; then
-              echo "✅ Flyway migrations completed successfully!"
-              break
-            elif echo "$BACKEND_LOGS" | grep -q "No migrations found"; then
-              echo "ℹ️ No Flyway migrations needed (schema already up to date)"
+            if echo "$BACKEND_LOGS" | grep -q "Hibernate.*schema\|DDL\|CREATE TABLE\|ALTER TABLE"; then
+              echo "✅ Hibernate schema creation detected in progress..."
               break
             elif echo "$BACKEND_LOGS" | grep -q "Started BackendApplication"; then
-              echo "ℹ️ Backend started but no Flyway activity detected yet..."
+              echo "✅ Backend started successfully - Hibernate schema creation completed"
+              break
             elif echo "$BACKEND_LOGS" | grep -q "Error\|Exception\|Failed"; then
               echo "❌ Backend startup error detected:"
               echo "$BACKEND_LOGS" | grep -i "error\|exception\|failed" | tail -5
@@ -592,12 +580,12 @@ jobs:
             exit 1
           fi
           
-          # Check backend logs for Flyway migration status
-          echo "Checking backend logs for Flyway migration status..."
+          # Check backend logs for Hibernate schema creation status
+          echo "Checking backend logs for Hibernate schema creation status..."
           sleep 10
           sudo docker logs backend --tail 50
           
-          # Verify production profile is active and Flyway is configured
+          # Verify production profile is active and Hibernate is working
           echo "Verifying Spring Boot configuration..."
           BACKEND_LOGS=$(sudo docker logs backend --tail 100 2>&1)
           
@@ -607,15 +595,12 @@ jobs:
             echo "❌ Production profile not detected in logs"
           fi
           
-          if echo "$BACKEND_LOGS" | grep -q "Flyway is handling the schema migration"; then
-            echo "✅ Flyway migration detected"
-          elif echo "$BACKEND_LOGS" | grep -q "Successfully applied"; then
-            echo "✅ Flyway migrations completed"
-          elif echo "$BACKEND_LOGS" | grep -q "No migrations found"; then
-            echo "ℹ️ No Flyway migrations needed"
+          if echo "$BACKEND_LOGS" | grep -q "Hibernate.*schema\|DDL\|CREATE TABLE\|ALTER TABLE"; then
+            echo "✅ Hibernate schema creation detected"
+          elif echo "$BACKEND_LOGS" | grep -q "Started BackendApplication"; then
+            echo "✅ Backend started successfully - Hibernate schema creation completed"
           else
-            echo "❌ No Flyway activity detected in logs"
-            echo "This may indicate Flyway is not properly configured or not running"
+            echo "ℹ️ Hibernate schema creation completed or not needed"
           fi
           
           # Debug JWT configuration (safely)

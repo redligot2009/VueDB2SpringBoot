@@ -35,6 +35,11 @@ services:
       - DB_URL=jdbc:db2://db2:50000/PHOTODB
       - DB_USER=db2inst1
       - DB_PASS=passw0rd
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION}
+      - JPA_DDL_AUTO=create-drop
+      - JPA_SHOW_SQL=true
+      - JPA_FORMAT_SQL=true
     ports:
       - "8080:8080"
     restart: unless-stopped

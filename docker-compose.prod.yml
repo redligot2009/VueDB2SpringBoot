@@ -37,16 +37,10 @@ services:
       - DB_PASS=passw0rd
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRATION=${JWT_EXPIRATION}
-      # Production Flyway configuration
-      - FLYWAY_ENABLED=true
-      - FLYWAY_LOCATIONS=classpath:db/migration
-      - FLYWAY_BASELINE_ON_MIGRATE=true
-      - FLYWAY_VALIDATE_ON_MIGRATE=true
-      - FLYWAY_CLEAN_DISABLED=true
-      # Production JPA configuration
-      - JPA_DDL_AUTO=${JPA_DDL_AUTO}
-      - JPA_SHOW_SQL=${JPA_SHOW_SQL}
-      - JPA_FORMAT_SQL=${JPA_FORMAT_SQL}
+      # Production JPA configuration - Hibernate handles schema
+      - JPA_DDL_AUTO=update
+      - JPA_SHOW_SQL=false
+      - JPA_FORMAT_SQL=false
     restart: unless-stopped
     networks:
       - app-network

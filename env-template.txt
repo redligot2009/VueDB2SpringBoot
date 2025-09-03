@@ -7,13 +7,9 @@ DB_URL=jdbc:db2://db2:50000/PHOTODB
 DB_USER=db2inst1
 DB_PASS=passw0rd
 
-# Production Flyway Configuration
-FLYWAY_ENABLED=true
-FLYWAY_LOCATIONS=classpath:db/migration
-FLYWAY_BASELINE_ON_MIGRATE=true
-FLYWAY_VALIDATE_ON_MIGRATE=true
-FLYWAY_CLEAN_DISABLED=true
-FLYWAY_AUTOCONFIGURE_EXCLUDE=
+# Database Schema Management
+# Hibernate will handle schema creation and updates automatically
+# No Flyway migrations needed
 
 # Production JPA Configuration
 JPA_DDL_AUTO=update
