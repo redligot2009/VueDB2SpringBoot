@@ -476,7 +476,34 @@ jobs:
           
           # Build and start new containers
           echo "Building and starting new containers..."
-          sudo docker compose -f docker-compose.prod.yml up -d --build || sudo docker-compose -f docker-compose.prod.yml up -d --build
+          sudo docker compose -f docker-compose.prod.yml up -d --build || sudo docker-compose -f docker-compose -f docker-compose.prod.yml up -d --build
+          
+          # First, run Flyway migrations to ensure schema is up-to-date
+          echo "Running Flyway migrations to ensure schema is up-to-date..."
+          sudo docker run --rm \
+            --network app-network \
+            -e SPRING_PROFILES_ACTIVE=production \
+            -e DB_URL=jdbc:db2://db2:50000/PHOTODB \
+            -e DB_USER=db2inst1 \
+            -e DB_PASS=passw0rd \
+            -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+            -e JWT_EXPIRATION="${{ secrets.JWT_EXPIRATION || '86400000' }}" \
+            -e FLYWAY_ENABLED=true \
+            -e FLYWAY_LOCATIONS=classpath:db/migration \
+            -e FLYWAY_BASELINE_ON_MIGRATE=true \
+            -e FLYWAY_VALIDATE_ON_MIGRATE=true \
+            -e JPA_DDL_AUTO=none \
+            --name flyway-migration \
+            backend:latest \
+            java -cp /app/resources:/app/classes:/app/libs/* org.flywaydb.commandline.Main \
+            -url=jdbc:db2://db2:50000/PHOTODB \
+            -user=db2inst1 \
+            -password=passw0rd \
+            -locations=classpath:db/migration \
+            migrate
+          
+          echo "Flyway migrations completed. Starting normal containers..."
+          sudo docker compose -f docker-compose.prod.yml up -d
           
           # Wait for services to be ready
           echo "Waiting for services to start..."
