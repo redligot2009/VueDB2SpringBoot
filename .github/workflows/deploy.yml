@@ -627,6 +627,16 @@ jobs:
           fi
           echo "JWT_EXPIRATION from .env: $(grep '^JWT_EXPIRATION=' .env | cut -d'=' -f2)"
           
+          # Check for duplicate JWT_SECRET entries
+          JWT_SECRET_COUNT=$(grep -c '^JWT_SECRET=' .env)
+          if [ "$JWT_SECRET_COUNT" -gt 1 ]; then
+            echo "⚠️ WARNING: Found $JWT_SECRET_COUNT JWT_SECRET entries in .env - this could cause token validation issues"
+            echo "JWT_SECRET entries:"
+            grep -n '^JWT_SECRET=' .env
+          else
+            echo "✅ Only one JWT_SECRET entry found in .env"
+          fi
+          
           # Check if backend is generating JWT tokens
           if echo "$BACKEND_LOGS" | grep -q "JWT"; then
             echo "✅ JWT-related logs found in backend"
@@ -699,6 +709,18 @@ jobs:
           echo "✅ JWT token received from auth endpoint"
           TOKEN=$(echo "$AUTH_RESPONSE" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
           echo "Token preview: ${TOKEN:0:20}..."
+          
+          # Test if the token works for authenticated endpoints
+          echo "Testing token validation..."
+          PHOTOS_RESPONSE=$(curl -f -s -H "Authorization: Bearer $TOKEN" \
+            "http://${{ steps.get-ip.outputs.instance_ip }}/api/photos?page=0&size=5" || echo "FAILED")
+          echo "Photos endpoint response with token: $PHOTOS_RESPONSE"
+          
+          if echo "$PHOTOS_RESPONSE" | grep -q "content"; then
+            echo "✅ Token validation successful - photos endpoint works"
+          else
+            echo "❌ Token validation failed - photos endpoint rejected token"
+          fi
         else
           echo "❌ No JWT token received from auth endpoint"
         fi
