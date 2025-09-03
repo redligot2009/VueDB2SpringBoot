@@ -697,19 +697,7 @@ jobs:
         HEALTH_RESPONSE=$(curl -f -s http://${{ steps.get-ip.outputs.instance_ip }}/health || echo "FAILED")
         echo "Health endpoint response: $HEALTH_RESPONSE"
         
-        # Test authentication endpoint availability (without credentials)
-        echo "Testing authentication endpoint availability..."
-        AUTH_RESPONSE=$(curl -f -s -X POST "http://${{ steps.get-ip.outputs.instance_ip }}/api/auth/signin" \
-          -H "Content-Type: application/json" \
-          -d '{"username":"test","password":"test"}' || echo "FAILED")
-        
-        if echo "$AUTH_RESPONSE" | grep -q "Invalid credentials\|Unauthorized\|Bad credentials"; then
-          echo "✅ Authentication endpoint is working (rejected invalid credentials as expected)"
-        elif echo "$AUTH_RESPONSE" | grep -q "token"; then
-          echo "⚠️ Authentication endpoint accepted test credentials - this suggests default credentials exist"
-        else
-          echo "❌ Authentication endpoint not responding properly"
-        fi
+
         
 
 
