@@ -431,6 +431,7 @@ jobs:
             echo "FLYWAY_BASELINE_ON_MIGRATE=true"
             echo "FLYWAY_VALIDATE_ON_MIGRATE=true"
             echo "FLYWAY_CLEAN_DISABLED=true"
+            echo "FLYWAY_AUTOCONFIGURE_EXCLUDE="
             echo "# Production JPA configuration"
             echo "JPA_DDL_AUTO=update"
             echo "JPA_SHOW_SQL=false"
