@@ -478,6 +478,10 @@ jobs:
           echo "Building containers..."
           sudo docker compose -f docker-compose.prod.yml build
           
+          # Create the network first
+          echo "Creating Docker network..."
+          sudo docker network create vuedb2springboot_app-network || echo "Network already exists"
+          
           # Start only DB2 first to ensure database is ready
           echo "Starting DB2 container..."
           sudo docker compose -f docker-compose.prod.yml up -d db2
@@ -496,7 +500,7 @@ jobs:
           # First, start backend with ddl-auto=update to create missing schema
           echo "Starting backend with ddl-auto=update to create missing schema..."
           sudo docker run --rm \
-            --network app-network \
+            --network vuedb2springboot_app-network \
             -e SPRING_PROFILES_ACTIVE=production \
             -e DB_URL=jdbc:db2://db2:50000/PHOTODB \
             -e DB_USER=db2inst1 \
