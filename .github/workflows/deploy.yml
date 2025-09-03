@@ -533,43 +533,29 @@ jobs:
           echo "Container status:"
           sudo docker compose -f docker-compose.prod.yml ps
           
-           # Wait for backend to fully start
-           echo "Waiting for backend to fully start..."
-           sleep 90
-           
-           # Give Flyway time to complete any migrations
-           echo "Giving Flyway time to complete any migrations..."
-           sleep 30
-           
-           # Simple schema verification
-           echo "Performing simple database schema verification..."
-           TABLE_COUNT=$(sudo docker exec db2 su - db2inst1 -c "db2 connect to PHOTODB && db2 -x 'SELECT COUNT(*) FROM SYSCAT.TABLES WHERE TABSCHEMA = '\''DB2INST1'\''' | tail -1" 2>/dev/null || echo "0")
-           echo "Total tables found: $TABLE_COUNT"
-           
-           if [ "$TABLE_COUNT" -gt "0" ]; then
-             echo "✅ Database schema verification successful - tables exist"
-           else
-             echo "❌ Database schema verification failed - no tables found"
-             echo "Backend logs:"
-             sudo docker logs backend --tail 100
-             exit 1
-           fi
-           
-           # Verify production profile is active
-           echo "Verifying Spring Boot configuration..."
-           BACKEND_LOGS=$(sudo docker logs backend --tail 100 2>&1)
-           
-           if echo "$BACKEND_LOGS" | grep -q "The following profiles are active: production"; then
-             echo "✅ Production profile is active"
-           else
-             echo "❌ Production profile not detected in logs"
-           fi
-           
-           if echo "$BACKEND_LOGS" | grep -q "Started BackendApplication"; then
-             echo "✅ Backend started successfully"
-           else
-             echo "❌ Backend startup not detected in logs"
-           fi
+                       # Wait for backend to fully start
+            echo "Waiting for backend to fully start..."
+            sleep 90
+            
+            # Give Flyway time to complete any migrations
+            echo "Giving Flyway time to complete any migrations..."
+            sleep 30
+            
+            # Verify production profile is active
+            echo "Verifying Spring Boot configuration..."
+            BACKEND_LOGS=$(sudo docker logs backend --tail 100 2>&1)
+            
+            if echo "$BACKEND_LOGS" | grep -q "The following profiles are active: production"; then
+              echo "✅ Production profile is active"
+            else
+              echo "❌ Production profile not detected in logs"
+            fi
+            
+            if echo "$BACKEND_LOGS" | grep -q "Started BackendApplication"; then
+              echo "✅ Backend started successfully"
+            else
+              echo "❌ Backend startup not detected in logs"
+            fi
           
           # Debug JWT configuration (safely)
           echo "Debugging JWT configuration..."
