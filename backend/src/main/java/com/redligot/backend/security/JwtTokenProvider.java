@@ -54,21 +54,28 @@ public class JwtTokenProvider {
 
     public boolean validateToken(String authToken) {
         try {
+            logger.debug("Validating JWT token: {}...", authToken.substring(0, Math.min(20, authToken.length())));
+            logger.debug("Using JWT secret: {}...", jwtConfig.getJwtSecret() != null ? jwtConfig.getJwtSecret().substring(0, Math.min(10, jwtConfig.getJwtSecret().length())) : "null");
+            
             Jwts.parserBuilder()
                     .setSigningKey(getSigningKey())
                     .build()
                     .parseClaimsJws(authToken);
+            
+            logger.debug("JWT token validation successful");
             return true;
         } catch (SecurityException ex) {
-            logger.error("Invalid JWT signature");
+            logger.error("Invalid JWT signature: {}", ex.getMessage());
         } catch (MalformedJwtException ex) {
-            logger.error("Invalid JWT token");
+            logger.error("Invalid JWT token: {}", ex.getMessage());
         } catch (ExpiredJwtException ex) {
-            logger.error("Expired JWT token");
+            logger.error("Expired JWT token: {}", ex.getMessage());
         } catch (UnsupportedJwtException ex) {
-            logger.error("Unsupported JWT token");
+            logger.error("Unsupported JWT token: {}", ex.getMessage());
         } catch (IllegalArgumentException ex) {
-            logger.error("JWT claims string is empty");
+            logger.error("JWT claims string is empty: {}", ex.getMessage());
+        } catch (Exception ex) {
+            logger.error("Unexpected error during JWT validation: {}", ex.getMessage(), ex);
         }
         return false;
     }
