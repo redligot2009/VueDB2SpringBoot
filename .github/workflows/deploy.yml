@@ -474,6 +474,20 @@ jobs:
           echo "Stopping existing containers..."
           sudo docker compose -f docker-compose.prod.yml down || sudo docker-compose -f docker-compose.prod.yml down || true
           
+          # Clean up any existing networks that might cause conflicts
+          echo "Cleaning up existing Docker networks..."
+          sudo docker network prune -f || true
+          
+          # Remove any networks with our project name that might have incorrect labels
+          EXISTING_NETWORKS=$(sudo docker network ls --filter "name=vuedb2springboot" --format "{{.Name}}" 2>/dev/null || echo "")
+          if [ ! -z "$EXISTING_NETWORKS" ]; then
+            echo "Found existing networks: $EXISTING_NETWORKS"
+            for network in $EXISTING_NETWORKS; do
+              echo "Removing network: $network"
+              sudo docker network rm "$network" 2>/dev/null || echo "Failed to remove network $network"
+            done
+          fi
+          
           # Build containers first (but don't start them yet)
           echo "Building containers..."
           sudo docker compose -f docker-compose.prod.yml build
