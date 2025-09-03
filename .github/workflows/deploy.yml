@@ -432,7 +432,7 @@ jobs:
             echo "FLYWAY_VALIDATE_ON_MIGRATE=true"
             echo "FLYWAY_CLEAN_DISABLED=true"
             echo "# Production JPA configuration"
-            echo "JPA_DDL_AUTO=validate"
+            echo "JPA_DDL_AUTO=update"
             echo "JPA_SHOW_SQL=false"
             echo "JPA_FORMAT_SQL=false"
           } >> .env
@@ -495,34 +495,7 @@ jobs:
             sleep 30
           done
           
-          # Get the network name that was created by Docker Compose
-          echo "Getting Docker network name..."
-          NETWORK_NAME=$(sudo docker inspect db2 --format='{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
-          echo "Using network: $NETWORK_NAME"
-          
-          # First, start backend with ddl-auto=update to create missing schema
-          echo "Starting backend with ddl-auto=update to create missing schema..."
-          sudo docker run --rm \
-            --network "$NETWORK_NAME" \
-            -e SPRING_PROFILES_ACTIVE=production \
-            -e DB_URL=jdbc:db2://db2:50000/PHOTODB \
-            -e DB_USER=db2inst1 \
-            -e DB_PASS=passw0rd \
-            -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
-            -e JWT_EXPIRATION="${{ secrets.JWT_EXPIRATION || '86400000' }}" \
-            -e FLYWAY_ENABLED=false \
-            -e JPA_DDL_AUTO=update \
-            --name backend-schema-fix \
-            vuedb2springboot-backend:latest &
-          
-          # Wait for schema fix to complete
-          echo "Waiting for schema fix to complete..."
-          sleep 90
-          
-          # Stop the temporary container
-          sudo docker stop backend-schema-fix || true
-          
-          echo "Schema fix completed. Starting all containers..."
+          echo "Starting all containers with production configuration..."
           sudo docker compose -f docker-compose.prod.yml up -d
           
           # Wait for services to be ready
