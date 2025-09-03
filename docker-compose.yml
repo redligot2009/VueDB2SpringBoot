@@ -23,11 +23,11 @@ services:
     restart: unless-stopped
     shm_size: 1g
     healthcheck:
-      test: ["CMD", "su", "-", "db2inst1", "-c", "db2 connect to PHOTODB && db2 quit"]
+      test: [ "CMD", "su", "-", "db2inst1", "-c", "db2 connect to PHOTODB && db2 quit" ]
       interval: 30s
       timeout: 10s
       retries: 10
-      start_period: 120s
+      start_period: 300s
 
   backend:
     build:
@@ -49,8 +49,9 @@ services:
       - FLYWAY_LOCATIONS=classpath:db/migration
       - FLYWAY_BASELINE_ON_MIGRATE=true
       - FLYWAY_VALIDATE_ON_MIGRATE=true
-      - FLYWAY_CLEAN_DISABLED=true
-      - FLYWAY_REPAIR_ON_MIGRATE=true
+      - FLYWAY_CLEAN_DISABLED=true 
+      - FLYWAY_REPAIR_ON_MIGRATE=true 
+      - FLYWAY_IGNORE_MIGRATION_PATTERNS=*:missing,*:future
       # JPA configuration
       - JPA_DDL_AUTO=update
       - JPA_SHOW_SQL=false
@@ -72,7 +73,7 @@ services:
       - "3000:80"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/api/health"]
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/api/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -81,5 +82,3 @@ services:
 volumes:
   db2_data:
     driver: local
-
-
