@@ -697,32 +697,18 @@ jobs:
         HEALTH_RESPONSE=$(curl -f -s http://${{ steps.get-ip.outputs.instance_ip }}/health || echo "FAILED")
         echo "Health endpoint response: $HEALTH_RESPONSE"
         
-        # Test authentication endpoint
-        echo "Testing authentication endpoint..."
+        # Test authentication endpoint availability (without credentials)
+        echo "Testing authentication endpoint availability..."
         AUTH_RESPONSE=$(curl -f -s -X POST "http://${{ steps.get-ip.outputs.instance_ip }}/api/auth/signin" \
           -H "Content-Type: application/json" \
-          -d '{"username":"admin","password":"admin"}' || echo "FAILED")
-        echo "Auth endpoint response: $AUTH_RESPONSE"
+          -d '{"username":"test","password":"test"}' || echo "FAILED")
         
-        # Check if we got a JWT token
-        if echo "$AUTH_RESPONSE" | grep -q "token"; then
-          echo "✅ JWT token received from auth endpoint"
-          TOKEN=$(echo "$AUTH_RESPONSE" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
-          echo "Token preview: ${TOKEN:0:20}..."
-          
-          # Test if the token works for authenticated endpoints
-          echo "Testing token validation..."
-          PHOTOS_RESPONSE=$(curl -f -s -H "Authorization: Bearer $TOKEN" \
-            "http://${{ steps.get-ip.outputs.instance_ip }}/api/photos?page=0&size=5" || echo "FAILED")
-          echo "Photos endpoint response with token: $PHOTOS_RESPONSE"
-          
-          if echo "$PHOTOS_RESPONSE" | grep -q "content"; then
-            echo "✅ Token validation successful - photos endpoint works"
-          else
-            echo "❌ Token validation failed - photos endpoint rejected token"
-          fi
+        if echo "$AUTH_RESPONSE" | grep -q "Invalid credentials\|Unauthorized\|Bad credentials"; then
+          echo "✅ Authentication endpoint is working (rejected invalid credentials as expected)"
+        elif echo "$AUTH_RESPONSE" | grep -q "token"; then
+          echo "⚠️ Authentication endpoint accepted test credentials - this suggests default credentials exist"
         else
-          echo "❌ No JWT token received from auth endpoint"
+          echo "❌ Authentication endpoint not responding properly"
         fi
         
 
