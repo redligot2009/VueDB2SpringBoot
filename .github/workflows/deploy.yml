@@ -533,75 +533,126 @@ jobs:
           echo "Container status:"
           sudo docker compose -f docker-compose.prod.yml ps
           
-          # Wait for backend to start and monitor Flyway migrations
-          echo "Waiting for backend to start and monitoring Flyway migrations..."
-          sleep 30
+            # Wait for backend to start and check if Flyway migrations are needed
+           echo "Waiting for backend to start and checking if Flyway migrations are needed..."
+           sleep 30
+           
+           # Check current database schema
+           echo "Checking current database schema..."
+           TABLE_COUNT=$(sudo docker exec db2 su - db2inst1 -c "db2 connect to PHOTODB && db2 -x 'SELECT COUNT(*) FROM SYSCAT.TABLES WHERE TABSCHEMA = '\''DB2INST1'\''' | tail -1" 2>/dev/null || echo "0")
+           echo "Current table count: $TABLE_COUNT"
+           
+           # Check if Flyway migrations are needed by looking for existing tables
+           if [ "$TABLE_COUNT" -ge "3" ]; then
+             echo "✅ Database already has required tables - checking if Flyway migrations are needed..."
+             
+             # Check if Flyway schema history table exists and has migrations
+             FLYWAY_HISTORY_EXISTS=$(sudo docker exec db2 su - db2inst1 -c "db2 connect to PHOTODB && db2 -x 'SELECT COUNT(*) FROM SYSCAT.TABLES WHERE TABSCHEMA = '\''DB2INST1'\'' AND TABNAME = '\''FLYWAY_SCHEMA_HISTORY'\''' | tail -1" 2>/dev/null || echo "0")
+             
+             if [ "$FLYWAY_HISTORY_EXISTS" -gt "0" ]; then
+               echo "✅ Flyway schema history table exists - checking migration status..."
+               # Check if migrations have been applied
+               MIGRATION_COUNT=$(sudo docker exec db2 su - db2inst1 -c "db2 connect to PHOTODB && db2 -x 'SELECT COUNT(*) FROM DB2INST1.FLYWAY_SCHEMA_HISTORY' | tail -1" 2>/dev/null || echo "0")
+               echo "Found $MIGRATION_COUNT existing Flyway migrations"
+               
+               if [ "$MIGRATION_COUNT" -gt "0" ]; then
+                 echo "✅ Flyway migrations already applied - skipping migration monitoring"
+                 SKIP_FLYWAY_MONITORING=true
+               else
+                 echo "⚠️ Flyway history table exists but no migrations found - will monitor for new migrations"
+                 SKIP_FLYWAY_MONITORING=false
+               fi
+             else
+               echo "⚠️ No Flyway history table found - will monitor for initial migration"
+               SKIP_FLYWAY_MONITORING=false
+             fi
+           else
+             echo "⚠️ Database missing required tables - will monitor for Flyway migrations"
+             SKIP_FLYWAY_MONITORING=false
+           fi
+           
+           # Additional optimization: Check backend logs for "No migrations found" message
+           if [ "$SKIP_FLYWAY_MONITORING" = "false" ]; then
+             echo "Checking backend logs for early Flyway status..."
+             sleep 10
+             EARLY_BACKEND_LOGS=$(sudo docker logs backend --tail 100 2>&1)
+             
+             if echo "$EARLY_BACKEND_LOGS" | grep -q "No migrations found\|Flyway.*migration.*completed\|Successfully applied.*migration"; then
+               echo "✅ Flyway already completed - skipping migration monitoring"
+               SKIP_FLYWAY_MONITORING=true
+             fi
+           fi"
           
-          # Check current database schema
-          echo "Checking current database schema..."
-          TABLE_COUNT=$(sudo docker exec db2 su - db2inst1 -c "db2 connect to PHOTODB && db2 -x 'SELECT COUNT(*) FROM SYSCAT.TABLES WHERE TABSCHEMA = '\''DB2INST1'\''' | tail -1" 2>/dev/null || echo "0")
-          echo "Current table count: $TABLE_COUNT"
+                     # Monitor backend startup and Flyway execution (only if needed)
+           if [ "$SKIP_FLYWAY_MONITORING" = "true" ]; then
+             echo "✅ Skipping Flyway monitoring - migrations already applied"
+             echo "Waiting for backend to fully start..."
+             sleep 30
+           else
+             echo "Monitoring backend startup and Flyway execution..."
+             for i in {1..15}; do
+               echo "Check $i: Monitoring backend logs for Flyway activity..."
+               
+               # Check if backend is running
+               if ! sudo docker compose -f docker-compose.prod.yml ps backend | grep -q "Up"; then
+                 echo "Backend container is not running. Checking logs for errors..."
+                 sudo docker logs backend --tail 20
+                 echo "Waiting 30 seconds before next check..."
+                 sleep 30
+                 continue
+               fi
+               
+               # Check backend logs for Flyway activity
+               BACKEND_LOGS=$(sudo docker logs backend --tail 50 2>&1)
+               
+               if echo "$BACKEND_LOGS" | grep -q "Successfully applied.*migration\|Flyway.*migration.*completed\|No migrations found"; then
+                 echo "✅ Flyway migration detected or completed..."
+                 break
+               elif echo "$BACKEND_LOGS" | grep -q "Started BackendApplication"; then
+                 echo "✅ Backend started successfully - checking if Flyway completed..."
+                 # Give Flyway a bit more time if backend just started
+                 sleep 30
+               elif echo "$BACKEND_LOGS" | grep -q "Error\|Exception\|Failed"; then
+                 echo "❌ Backend startup error detected:"
+                 echo "$BACKEND_LOGS" | grep -i "error\|exception\|failed" | tail -5
+               fi
+               
+               echo "Waiting 30 seconds before next check..."
+               sleep 30
+             done
+           fi
           
-          # Monitor backend startup and Flyway execution
-          echo "Monitoring backend startup and Flyway execution..."
-          for i in {1..15}; do
-            echo "Check $i: Monitoring backend logs for Flyway activity..."
-            
-            # Check if backend is running
-            if ! sudo docker compose -f docker-compose.prod.yml ps backend | grep -q "Up"; then
-              echo "Backend container is not running. Checking logs for errors..."
-              sudo docker logs backend --tail 20
-              echo "Waiting 30 seconds before next check..."
-              sleep 30
-              continue
-            fi
-            
-            # Check backend logs for Flyway activity
-            BACKEND_LOGS=$(sudo docker logs backend --tail 50 2>&1)
-            
-            if echo "$BACKEND_LOGS" | grep -q "Successfully applied.*migration\|Flyway.*migration.*completed\|No migrations found"; then
-              echo "✅ Flyway migration detected or completed..."
-              break
-            elif echo "$BACKEND_LOGS" | grep -q "Started BackendApplication"; then
-              echo "✅ Backend started successfully - checking if Flyway completed..."
-              # Give Flyway a bit more time if backend just started
-              sleep 30
-            elif echo "$BACKEND_LOGS" | grep -q "Error\|Exception\|Failed"; then
-              echo "❌ Backend startup error detected:"
-              echo "$BACKEND_LOGS" | grep -i "error\|exception\|failed" | tail -5
-            fi
-            
-            echo "Waiting 30 seconds before next check..."
-            sleep 30
-          done
-          
-          # Wait for Flyway migrations to complete before schema verification
-          echo "Waiting for Flyway migrations to complete..."
-          for i in {1..20}; do
-            echo "Migration check $i: Waiting for Flyway to complete..."
-            
-            # Check if Flyway has completed migrations
-            BACKEND_LOGS=$(sudo docker logs backend --tail 100 2>&1)
-            
-            if echo "$BACKEND_LOGS" | grep -q "Successfully applied.*migration\|Flyway.*migration.*completed\|No migrations found"; then
-              echo "✅ Flyway migrations completed successfully"
-              break
-            elif echo "$BACKEND_LOGS" | grep -q "Started BackendApplication"; then
-              echo "✅ Backend started - checking if Flyway completed..."
-              # Give Flyway a bit more time if backend just started
-              sleep 30
-            elif echo "$BACKEND_LOGS" | grep -q "Error\|Exception\|Failed"; then
-              echo "❌ Backend error detected during migration:"
-              echo "$BACKEND_LOGS" | grep -i "error\|exception\|failed" | tail -5
-            fi
-            
-            if [ $i -eq 20 ]; then
-              echo "⚠️ Warning: Flyway migration check timeout - proceeding with verification anyway"
-            fi
-            
-            echo "Waiting 30 seconds before next check..."
-            sleep 30
-          done
+                     # Wait for Flyway migrations to complete before schema verification (only if needed)
+           if [ "$SKIP_FLYWAY_MONITORING" = "true" ]; then
+             echo "✅ Skipping Flyway migration wait - migrations already applied"
+           else
+             echo "Waiting for Flyway migrations to complete..."
+             for i in {1..20}; do
+               echo "Migration check $i: Waiting for Flyway to complete..."
+               
+               # Check if Flyway has completed migrations
+               BACKEND_LOGS=$(sudo docker logs backend --tail 100 2>&1)
+               
+               if echo "$BACKEND_LOGS" | grep -q "Successfully applied.*migration\|Flyway.*migration.*completed\|No migrations found"; then
+                 echo "✅ Flyway migrations completed successfully"
+                 break
+               elif echo "$BACKEND_LOGS" | grep -q "Started BackendApplication"; then
+                 echo "✅ Backend started - checking if Flyway completed..."
+                 # Give Flyway a bit more time if backend just started
+                 sleep 30
+               elif echo "$BACKEND_LOGS" | grep -q "Error\|Exception\|Failed"; then
+                 echo "❌ Backend error detected during migration:"
+                 echo "$BACKEND_LOGS" | grep -i "error\|exception\|failed" | tail -5
+               fi
+               
+               if [ $i -eq 20 ]; then
+                 echo "⚠️ Warning: Flyway migration check timeout - proceeding with verification anyway"
+               fi
+               
+               echo "Waiting 30 seconds before next check..."
+               sleep 30
+             done
+           fi
           
           # Final schema check - now after Flyway should have completed
           echo "Performing final database schema verification..."
