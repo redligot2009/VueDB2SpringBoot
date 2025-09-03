@@ -1,6 +1,7 @@
 package com.redligot.backend.dto;
 
 import com.redligot.backend.model.Photo;
+import java.time.LocalDateTime;
 
 /**
  * DTO for Photo responses that excludes the image data to prevent massive responses.
@@ -13,6 +14,7 @@ public class PhotoDto {
     private String originalFilename;
     private String contentType;
     private Long size;
+    private LocalDateTime createdAt;
     private Long userId;
     private Long galleryId;
 
@@ -25,6 +27,7 @@ public class PhotoDto {
         this.originalFilename = photo.getOriginalFilename();
         this.contentType = photo.getContentType();
         this.size = photo.getSize();
+        this.createdAt = photo.getCreatedAt();
         this.userId = photo.getUser().getId();
         this.galleryId = photo.getGallery() != null ? photo.getGallery().getId() : null;
     }
@@ -76,6 +79,14 @@ public class PhotoDto {
 
     public void setSize(Long size) {
         this.size = size;
+    }
+    
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
     
     public Long getUserId() {

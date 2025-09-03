@@ -244,9 +244,11 @@ frontend/build/
 backend/target/
 backend/build/
 
-# Database dumps
-*.sql
+# Database dumps (but allow Flyway migrations)
 *.dump
+# Ignore SQL files except Flyway migrations
+*.sql
+!**/db/migration/*.sql
 
 # SSL certificates
 *.pem

@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -121,6 +122,7 @@ public class PhotoService {
 			photo.setSize(file.getSize());
 			photo.setData(file.getBytes());
 			photo.setUser(user);
+			photo.setCreatedAt(LocalDateTime.now());
 			
 			// Set gallery if provided
 			if (galleryId != null) {
@@ -189,6 +191,7 @@ public class PhotoService {
 				photo.setSize(file.getSize());
 				photo.setData(file.getBytes());
 				photo.setUser(user);
+				photo.setCreatedAt(LocalDateTime.now());
 				
 				// Set gallery if provided
 				if (galleryId != null) {

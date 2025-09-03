@@ -27,6 +27,22 @@
             </select>
           </div>
 
+          <div class="sorting-controls">
+            <label for="sort-field">Sort by:</label>
+            <select id="sort-field" v-model="sortBy" @change="onSortChange" class="sort-select">
+              <option value="createdAt">Date Added</option>
+              <option value="title">Title</option>
+              <option value="size">File Size</option>
+              <option value="id">ID</option>
+            </select>
+            
+            <label for="sort-direction">Direction:</label>
+            <select id="sort-direction" v-model="sortDir" @change="onSortChange" class="sort-select">
+              <option value="desc">Descending</option>
+              <option value="asc">Ascending</option>
+            </select>
+          </div>
+
           <div class="gallery-actions">
             <!-- Selection mode toggle -->
             <button @click="toggleSelectionMode" class="selection-mode-btn" :class="{ 'active': isSelectionMode }">
@@ -127,6 +143,10 @@ const isSelectionMode = ref(false)
 // Page size state
 const selectedPageSize = ref<number>(5)
 
+// Sorting state
+const sortBy = ref<string>('createdAt')
+const sortDir = ref<string>('desc')
+
 // Gallery filtering state
 const selectedGalleryId = ref<string>('null')
 const galleries = ref<any[]>([])
@@ -177,7 +197,7 @@ const loadPhotos = async () => {
   try {
     console.log('🔄 PhotoGallery: Starting to load photos...')
     const galleryId = selectedGalleryId.value === 'null' ? undefined : parseInt(selectedGalleryId.value)
-    await photoStore.fetchPhotos(0, selectedPageSize.value, galleryId)
+    await photoStore.fetchPhotos(0, selectedPageSize.value, galleryId, sortBy.value, sortDir.value)
     console.log('🔄 PhotoGallery: Photos loaded, hasPhotos:', photoStore.hasPhotos)
     console.log('🔄 PhotoGallery: Photos count:', photoStore.photoCount)
   } catch (error) {
@@ -197,7 +217,8 @@ const retryLoad = async () => {
 // Pagination methods
 const handlePageChange = async (page: number) => {
   try {
-    await photoStore.fetchPhotos(page, selectedPageSize.value)
+    const galleryId = selectedGalleryId.value === 'null' ? undefined : parseInt(selectedGalleryId.value)
+    await photoStore.fetchPhotos(page, selectedPageSize.value, galleryId, sortBy.value, sortDir.value)
   } catch (error) {
     console.error('Failed to navigate to page:', error)
   }
@@ -206,7 +227,8 @@ const handlePageChange = async (page: number) => {
 const handlePageSizeChange = async (size: number) => {
   selectedPageSize.value = size
   // Reset to first page when changing page size
-  await photoStore.fetchPhotos(0, size)
+  const galleryId = selectedGalleryId.value === 'null' ? undefined : parseInt(selectedGalleryId.value)
+  await photoStore.fetchPhotos(0, size, galleryId, sortBy.value, sortDir.value)
 }
 
 // Gallery filtering methods
@@ -220,6 +242,10 @@ const loadGalleries = async () => {
 }
 
 const onGalleryChange = async () => {
+  await loadPhotos()
+}
+
+const onSortChange = async () => {
   await loadPhotos()
 }
 
@@ -419,6 +445,35 @@ onMounted(async () => {
 }
 
 .gallery-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.sorting-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.sorting-controls label {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.sort-select {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  font-size: 0.875rem;
+  min-width: 120px;
+}
+
+.sort-select:focus {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
@@ -730,6 +785,17 @@ onMounted(async () => {
     padding: 1.5rem 0 1rem 0;
   }
 
+  .gallery-filter,
+  .sorting-controls {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .gallery-select,
+  .sort-select {
+    min-width: 100%;
+  }
+
 
 
   .gallery-actions {
@@ -823,6 +889,18 @@ onMounted(async () => {
 
   .gallery-header {
     padding: 1rem 0 0.75rem 0;
+  }
+
+  .gallery-filter,
+  .sorting-controls {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .gallery-select,
+  .sort-select {
+    min-width: 100%;
+    font-size: 0.8rem;
   }
 
 

@@ -17,6 +17,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -95,8 +96,22 @@ public class PhotoController {
 			@Parameter(description = "Page number (0-based)", example = "0") @RequestParam(defaultValue = "0") int page,
 			@Parameter(description = "Page size", example = "10") @RequestParam(defaultValue = "10") int size,
 			@Parameter(description = "Gallery ID (optional - null for unorganized photos)") @RequestParam(required = false) Long galleryId,
+			@Parameter(description = "Sort field (default: createdAt)", example = "createdAt") @RequestParam(defaultValue = "createdAt") String sortBy,
+			@Parameter(description = "Sort direction (asc or desc)", example = "desc") @RequestParam(defaultValue = "desc") String sortDir,
 			@AuthenticationPrincipal CustomUserDetails userDetails) {
-		Pageable pageable = PageRequest.of(page, size);
+		
+		// Validate sort field
+		if (!isValidSortField(sortBy)) {
+			sortBy = "createdAt";
+		}
+		
+		// Validate sort direction
+		Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+		
+		// Create sort object
+		Sort sort = Sort.by(direction, sortBy);
+		Pageable pageable = PageRequest.of(page, size, sort);
+		
 		Page<Photo> photoPage = photoService.findByUserIdAndGalleryId(userDetails.getId(), galleryId, pageable);
 		return PaginatedPhotoResponse.fromPage(photoPage);
 	}
@@ -360,10 +375,37 @@ public class PhotoController {
 		Resource resource = photoService.getImageResource(id);
 		String filename = photo.getOriginalFilename() != null ? photo.getOriginalFilename() : ("photo-" + photo.getId());
 		MediaType type = photo.getContentType() != null ? MediaType.parseMediaType(photo.getContentType()) : MediaType.APPLICATION_OCTET_STREAM;
+		
+		// Create HttpHeaders object to avoid any potential duplicate header issues
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(type);
+		headers.setContentLength(photo.getSize() != null ? photo.getSize() : photo.getData().length);
+		
+		// Set Content-Disposition header for inline display
+		headers.set(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"");
+		
 		return ResponseEntity.ok()
-				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
-				.contentType(type)
-				.contentLength(photo.getSize() != null ? photo.getSize() : photo.getData().length)
+				.headers(headers)
 				.body(resource);
+	}
+	
+	/**
+	 * Validate if the sort field is allowed.
+	 * 
+	 * @param sortBy the field to sort by
+	 * @return true if the field is valid for sorting
+	 */
+	private boolean isValidSortField(String sortBy) {
+		if (sortBy == null) return false;
+		
+		// Define allowed sort fields
+		String[] allowedFields = {"id", "title", "description", "createdAt", "size"};
+		
+		for (String field : allowedFields) {
+			if (field.equals(sortBy)) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

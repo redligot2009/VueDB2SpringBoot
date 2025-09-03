@@ -11,6 +11,23 @@
                         <span v-if="gallery">• Created {{ formatDate(gallery.createdAt) }}</span>
                     </div>
                 </div>
+
+                <!-- Sorting Controls -->
+                <div class="sorting-controls">
+                    <label for="sort-field">Sort by:</label>
+                    <select id="sort-field" v-model="sortBy" @change="onSortChange" class="sort-select">
+                        <option value="createdAt">Date Added</option>
+                        <option value="title">Title</option>
+                        <option value="size">File Size</option>
+                        <option value="id">ID</option>
+                    </select>
+                    
+                    <label for="sort-direction">Direction:</label>
+                    <select id="sort-direction" v-model="sortDir" @change="onSortChange" class="sort-select">
+                        <option value="desc">Descending</option>
+                        <option value="asc">Ascending</option>
+                    </select>
+                </div>
             </div>
 
             <!-- Gallery Actions -->
@@ -114,6 +131,10 @@ const pageSize = ref(5)
 const totalElements = ref(0)
 const totalPages = ref(0)
 
+// Sorting state
+const sortBy = ref<string>('createdAt')
+const sortDir = ref<string>('desc')
+
 // Available galleries for moving photos
 const availableGalleries = ref<any[]>([])
 
@@ -149,13 +170,17 @@ const loadGallery = async () => {
 
 const loadPhotos = async () => {
     try {
-        const response = await apiService.getAllPhotos(currentPage.value, pageSize.value, galleryId.value)
+        const response = await apiService.getAllPhotos(currentPage.value, pageSize.value, galleryId.value, sortBy.value, sortDir.value)
         photos.value = response.content
         totalElements.value = response.totalElements
         totalPages.value = response.totalPages
     } catch (err: any) {
         console.error('Error loading photos:', err)
     }
+}
+
+const onSortChange = async () => {
+    await loadPhotos()
 }
 
 const loadAvailableGalleries = async () => {
@@ -402,6 +427,35 @@ watch(() => route.params.id, async () => {
 
 .gallery-stats span {
     margin-right: 1rem;
+}
+
+.sorting-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.sorting-controls label {
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+}
+
+.sort-select {
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    font-size: 0.875rem;
+    min-width: 120px;
+}
+
+.sort-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .gallery-actions {
@@ -816,6 +870,15 @@ watch(() => route.params.id, async () => {
         flex-direction: column;
         gap: 1rem;
         padding: 1.5rem;
+    }
+
+    .sorting-controls {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .sort-select {
+        min-width: 100%;
     }
 
     .gallery-info h1 {

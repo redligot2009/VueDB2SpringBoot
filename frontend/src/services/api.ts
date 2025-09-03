@@ -11,6 +11,7 @@ export interface Photo {
   originalFilename?: string
   contentType?: string
   size?: number
+  createdAt?: string
   galleryId?: number
   // data field removed - will be fetched separately when needed
 }
@@ -92,9 +93,9 @@ class ApiService {
   }
 
   // Get all photos with pagination (metadata only)
-  async getAllPhotos(page: number = 0, size: number = 5, galleryId?: number): Promise<PaginatedResponse<Photo>> {
+  async getAllPhotos(page: number = 0, size: number = 5, galleryId?: number, sortBy: string = 'createdAt', sortDir: string = 'desc'): Promise<PaginatedResponse<Photo>> {
     console.log('🌐 Making API call to /photos with auth headers:', this.getAuthHeaders())
-    const params: any = { page, size }
+    const params: any = { page, size, sortBy, sortDir }
     if (galleryId !== undefined) {
       params.galleryId = galleryId
     }

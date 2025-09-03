@@ -35,6 +35,9 @@
         <span v-if="photo.contentType" class="photo-type">
           {{ photo.contentType }}
         </span>
+        <span v-if="photo.createdAt" class="photo-date">
+          {{ formatDate(photo.createdAt) }}
+        </span>
       </div>
              <div class="photo-actions">
          <RouterLink :to="`/photo/${photo.id}?return=${encodeURIComponent(route.fullPath)}`" class="view-btn">
@@ -85,6 +88,15 @@ const formatFileSize = (bytes: number): string => {
   const sizes = ['Bytes', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  })
 }
 
 const loadImage = async () => {
@@ -234,7 +246,8 @@ onMounted(() => {
 }
 
 .photo-size,
-.photo-type {
+.photo-type,
+.photo-date {
   background: #f5f5f5;
   padding: 2px 6px;
   border-radius: 4px;

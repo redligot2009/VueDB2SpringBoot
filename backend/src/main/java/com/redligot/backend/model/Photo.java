@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.time.LocalDateTime;
 
 /**
  * Photo entity representing an uploaded image with metadata.
@@ -64,6 +65,13 @@ public class Photo {
 	@JoinColumn(name = "gallery_id")
 	@JsonIgnore
 	private Gallery gallery;
+
+	/**
+	 * Timestamp when the photo was created/uploaded.
+	 */
+	@Column(name = "created_at", nullable = false, updatable = false)
+	@Temporal(TemporalType.TIMESTAMP)
+	private LocalDateTime createdAt;
 
 	public Long getId() {
 		return id;
@@ -135,5 +143,13 @@ public class Photo {
 	
 	public void setGallery(Gallery gallery) {
 		this.gallery = gallery;
+	}
+
+	public LocalDateTime getCreatedAt() {
+		return createdAt;
+	}
+
+	public void setCreatedAt(LocalDateTime createdAt) {
+		this.createdAt = createdAt;
 	}
 }

@@ -422,6 +422,21 @@ jobs:
             fi
           fi
           
+          # Add production Flyway and JPA configuration to .env
+          echo "Adding production configuration to .env..."
+          {
+            echo "# Production Flyway configuration"
+            echo "FLYWAY_ENABLED=true"
+            echo "FLYWAY_LOCATIONS=classpath:db/migration"
+            echo "FLYWAY_BASELINE_ON_MIGRATE=true"
+            echo "FLYWAY_VALIDATE_ON_MIGRATE=true"
+            echo "FLYWAY_CLEAN_DISABLED=true"
+            echo "# Production JPA configuration"
+            echo "JPA_DDL_AUTO=validate"
+            echo "JPA_SHOW_SQL=false"
+            echo "JPA_FORMAT_SQL=false"
+          } >> .env
+          
           # Verify Docker is working
           echo "Verifying Docker installation..."
           if ! sudo docker info >/dev/null 2>&1; then
@@ -467,9 +482,106 @@ jobs:
           echo "Waiting for services to start..."
           sleep 30
           
+          # Wait for DB2 to be fully ready
+          echo "Waiting for DB2 to be fully ready..."
+          for i in {1..10}; do
+            if sudo docker exec db2 su - db2inst1 -c "db2 connect to PHOTODB && db2 quit" 2>/dev/null; then
+              echo "DB2 is ready!"
+              break
+            fi
+            echo "DB2 not ready yet, attempt $i/10, waiting 30 seconds..."
+            sleep 30
+          done
+          
           # Verify container status
           echo "Container status:"
           sudo docker compose -f docker-compose.prod.yml ps
+          
+          # Wait for backend to start and monitor Flyway migrations
+          echo "Waiting for backend to start and monitoring Flyway migrations..."
+          sleep 30
+          
+          # Check if Flyway migrations are needed by examining the database schema
+          echo "Checking current database schema..."
+          TABLE_COUNT=$(sudo docker exec db2 su - db2inst1 -c "db2 connect to PHOTODB && db2 -x 'SELECT COUNT(*) FROM SYSCAT.TABLES WHERE TABSCHEMA = '\''DB2INST1'\''' | tail -1" 2>/dev/null || echo "0")
+          echo "Current table count: $TABLE_COUNT"
+          
+          # Monitor backend startup and Flyway execution
+          echo "Monitoring backend startup and Flyway execution..."
+          for i in {1..15}; do
+            echo "Check $i: Monitoring backend logs for Flyway activity..."
+            
+            # Check if backend is running
+            if ! sudo docker compose -f docker-compose.prod.yml ps backend | grep -q "Up"; then
+              echo "Backend container is not running. Checking logs for errors..."
+              sudo docker logs backend --tail 20
+              echo "Waiting 30 seconds before next check..."
+              sleep 30
+              continue
+            fi
+            
+            # Check backend logs for Flyway activity
+            BACKEND_LOGS=$(sudo docker logs backend --tail 50 2>&1)
+            
+            if echo "$BACKEND_LOGS" | grep -q "Flyway is handling the schema migration"; then
+              echo "✅ Flyway migration detected in progress..."
+              break
+            elif echo "$BACKEND_LOGS" | grep -q "Successfully applied"; then
+              echo "✅ Flyway migrations completed successfully!"
+              break
+            elif echo "$BACKEND_LOGS" | grep -q "No migrations found"; then
+              echo "ℹ️ No Flyway migrations needed (schema already up to date)"
+              break
+            elif echo "$BACKEND_LOGS" | grep -q "Started BackendApplication"; then
+              echo "ℹ️ Backend started but no Flyway activity detected yet..."
+            elif echo "$BACKEND_LOGS" | grep -q "Error\|Exception\|Failed"; then
+              echo "❌ Backend startup error detected:"
+              echo "$BACKEND_LOGS" | grep -i "error\|exception\|failed" | tail -5
+            fi
+            
+            echo "Waiting 30 seconds before next check..."
+            sleep 30
+          done
+          
+          # Final schema check
+          echo "Performing final database schema verification..."
+          FINAL_TABLE_COUNT=$(sudo docker exec db2 su - db2inst1 -c "db2 connect to PHOTODB && db2 -x 'SELECT COUNT(*) FROM SYSCAT.TABLES WHERE TABSCHEMA = '\''DB2INST1'\''' | tail -1" 2>/dev/null || echo "0")
+          echo "Final table count: $FINAL_TABLE_COUNT"
+          
+          if [ "$FINAL_TABLE_COUNT" -ge "3" ]; then
+            echo "✅ Database schema verification successful - all required tables present"
+          else
+            echo "❌ Database schema verification failed - missing required tables"
+            echo "Backend logs:"
+            sudo docker logs backend --tail 100
+            exit 1
+          fi
+          
+          # Check backend logs for Flyway migration status
+          echo "Checking backend logs for Flyway migration status..."
+          sleep 10
+          sudo docker logs backend --tail 50
+          
+          # Verify production profile is active and Flyway is configured
+          echo "Verifying Spring Boot configuration..."
+          BACKEND_LOGS=$(sudo docker logs backend --tail 100 2>&1)
+          
+          if echo "$BACKEND_LOGS" | grep -q "The following profiles are active: production"; then
+            echo "✅ Production profile is active"
+          else
+            echo "❌ Production profile not detected in logs"
+          fi
+          
+          if echo "$BACKEND_LOGS" | grep -q "Flyway is handling the schema migration"; then
+            echo "✅ Flyway migration detected"
+          elif echo "$BACKEND_LOGS" | grep -q "Successfully applied"; then
+            echo "✅ Flyway migrations completed"
+          elif echo "$BACKEND_LOGS" | grep -q "No migrations found"; then
+            echo "ℹ️ No Flyway migrations needed"
+          else
+            echo "❌ No Flyway activity detected in logs"
+            echo "This may indicate Flyway is not properly configured or not running"
+          fi
           
 
         EOF

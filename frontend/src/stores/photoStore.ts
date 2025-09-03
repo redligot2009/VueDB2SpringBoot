@@ -34,7 +34,7 @@ export const usePhotoStore = defineStore('photo', () => {
   const isLastPage = computed(() => currentPage.value === totalPages.value - 1)
 
   // Actions
-  const fetchPhotos = async (page: number = 0, size: number = 5, galleryId?: number) => {
+  const fetchPhotos = async (page: number = 0, size: number = 5, galleryId?: number, sortBy: string = 'createdAt', sortDir: string = 'desc') => {
     // Check if user is authenticated before making API call
     const authStore = useAuthStore()
     if (!authStore.isAuthenticated) {
@@ -51,7 +51,7 @@ export const usePhotoStore = defineStore('photo', () => {
     error.value = null
     
     try {
-      const response: PaginatedResponse<Photo> = await apiService.getAllPhotos(page, size, galleryId)
+      const response: PaginatedResponse<Photo> = await apiService.getAllPhotos(page, size, galleryId, sortBy, sortDir)
       console.log('✅ Photos fetched successfully:', response)
       console.log('📊 Response type:', typeof response)
       
@@ -96,7 +96,7 @@ export const usePhotoStore = defineStore('photo', () => {
 
   const fetchNextPage = async () => {
     if (hasNextPage.value) {
-      await fetchPhotos(currentPage.value + 1, pageSize.value, currentGalleryId.value)
+      await fetchPhotos(currentPage.value + 1, pageSize.value, currentGalleryId.value, 'createdAt', 'desc')
     }
   }
 

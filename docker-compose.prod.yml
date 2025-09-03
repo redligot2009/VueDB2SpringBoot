@@ -31,12 +31,22 @@ services:
     depends_on:
       - db2
     environment:
-      - SPRING_PROFILES_ACTIVE=db2
+      - SPRING_PROFILES_ACTIVE=production
       - DB_URL=jdbc:db2://db2:50000/PHOTODB
       - DB_USER=db2inst1
       - DB_PASS=passw0rd
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRATION=${JWT_EXPIRATION}
+      # Production Flyway configuration
+      - FLYWAY_ENABLED=true
+      - FLYWAY_LOCATIONS=classpath:db/migration
+      - FLYWAY_BASELINE_ON_MIGRATE=true
+      - FLYWAY_VALIDATE_ON_MIGRATE=true
+      - FLYWAY_CLEAN_DISABLED=true
+      # Production JPA configuration
+      - JPA_DDL_AUTO=validate
+      - JPA_SHOW_SQL=false
+      - JPA_FORMAT_SQL=false
     restart: unless-stopped
     networks:
       - app-network
