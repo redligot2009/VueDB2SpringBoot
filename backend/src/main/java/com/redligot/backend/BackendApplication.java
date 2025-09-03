@@ -2,6 +2,7 @@ package com.redligot.backend;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 /**
  * Spring Boot entry point for the Photo Upload CRUD backend.
@@ -11,6 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * stored directly in an in-memory H2 database for simplicity.</p>
  */
 @SpringBootApplication
+@EnableConfigurationProperties
 public class BackendApplication {
 
 	/**

@@ -1,10 +1,11 @@
 package com.redligot.backend.security;
 
+import com.redligot.backend.config.JwtConfig;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
@@ -16,21 +17,22 @@ public class JwtTokenProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtTokenProvider.class);
 
-    @Value("${app.jwtSecret:your-super-secure-jwt-secret-key-that-is-at-least-64-characters-long-for-hs512-algorithm}")
-    private String jwtSecret;
-
-    @Value("${app.jwtExpirationInMs:86400000}")
-    private int jwtExpirationInMs;
+    @Autowired
+    private JwtConfig jwtConfig;
 
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(jwtSecret.getBytes());
+        String secret = jwtConfig.getJwtSecret();
+        if (secret == null || secret.trim().isEmpty()) {
+            throw new IllegalStateException("JWT secret is not configured. Please set JWT_SECRET environment variable.");
+        }
+        return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
     public String generateToken(Authentication authentication) {
         CustomUserDetails userPrincipal = (CustomUserDetails) authentication.getPrincipal();
 
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
+        Date expiryDate = new Date(now.getTime() + jwtConfig.getJwtExpirationInMs());
 
         return Jwts.builder()
                 .setSubject(Long.toString(userPrincipal.getId()))
