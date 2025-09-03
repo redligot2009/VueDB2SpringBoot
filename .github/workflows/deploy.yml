@@ -474,12 +474,27 @@ jobs:
           echo "Stopping existing containers..."
           sudo docker compose -f docker-compose.prod.yml down || sudo docker-compose -f docker-compose.prod.yml down || true
           
-          # Build and start new containers
-          echo "Building and starting new containers..."
-          sudo docker compose -f docker-compose.prod.yml up -d --build || sudo docker-compose -f docker-compose -f docker-compose.prod.yml up -d --build
+          # Build containers first (but don't start them yet)
+          echo "Building containers..."
+          sudo docker compose -f docker-compose.prod.yml build
           
-          # First, run Flyway migrations to ensure schema is up-to-date
-          echo "Running Flyway migrations to ensure schema is up-to-date..."
+          # Start only DB2 first to ensure database is ready
+          echo "Starting DB2 container..."
+          sudo docker compose -f docker-compose.prod.yml up -d db2
+          
+          # Wait for DB2 to be ready
+          echo "Waiting for DB2 to be ready..."
+          for i in {1..10}; do
+            if sudo docker exec db2 su - db2inst1 -c "db2 connect to PHOTODB && db2 quit" 2>/dev/null; then
+              echo "DB2 is ready!"
+              break
+            fi
+            echo "DB2 not ready yet, attempt $i/10, waiting 30 seconds..."
+            sleep 30
+          done
+          
+          # First, start backend with ddl-auto=update to create missing schema
+          echo "Starting backend with ddl-auto=update to create missing schema..."
           sudo docker run --rm \
             --network app-network \
             -e SPRING_PROFILES_ACTIVE=production \
@@ -488,21 +503,19 @@ jobs:
             -e DB_PASS=passw0rd \
             -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
             -e JWT_EXPIRATION="${{ secrets.JWT_EXPIRATION || '86400000' }}" \
-            -e FLYWAY_ENABLED=true \
-            -e FLYWAY_LOCATIONS=classpath:db/migration \
-            -e FLYWAY_BASELINE_ON_MIGRATE=true \
-            -e FLYWAY_VALIDATE_ON_MIGRATE=true \
-            -e JPA_DDL_AUTO=none \
-            --name flyway-migration \
-            backend:latest \
-            java -cp /app/resources:/app/classes:/app/libs/* org.flywaydb.commandline.Main \
-            -url=jdbc:db2://db2:50000/PHOTODB \
-            -user=db2inst1 \
-            -password=passw0rd \
-            -locations=classpath:db/migration \
-            migrate
+            -e FLYWAY_ENABLED=false \
+            -e JPA_DDL_AUTO=update \
+            --name backend-schema-fix \
+            vuedb2springboot-backend:latest &
           
-          echo "Flyway migrations completed. Starting normal containers..."
+          # Wait for schema fix to complete
+          echo "Waiting for schema fix to complete..."
+          sleep 90
+          
+          # Stop the temporary container
+          sudo docker stop backend-schema-fix || true
+          
+          echo "Schema fix completed. Starting all containers..."
           sudo docker compose -f docker-compose.prod.yml up -d
           
           # Wait for services to be ready
