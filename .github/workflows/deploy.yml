@@ -618,6 +618,30 @@ jobs:
             echo "This may indicate Flyway is not properly configured or not running"
           fi
           
+          # Debug JWT configuration (safely)
+          echo "Debugging JWT configuration..."
+          if grep -q '^JWT_SECRET=' .env; then
+            echo "✅ JWT_SECRET is set in .env (length: $(grep '^JWT_SECRET=' .env | cut -d'=' -f2 | wc -c) chars)"
+          else
+            echo "❌ JWT_SECRET not found in .env"
+          fi
+          echo "JWT_EXPIRATION from .env: $(grep '^JWT_EXPIRATION=' .env | cut -d'=' -f2)"
+          
+          # Check if backend is generating JWT tokens
+          if echo "$BACKEND_LOGS" | grep -q "JWT"; then
+            echo "✅ JWT-related logs found in backend"
+          else
+            echo "❌ No JWT-related logs found in backend"
+          fi
+          
+          # Check for any JWT errors
+          if echo "$BACKEND_LOGS" | grep -i "jwt\|token\|auth" | grep -i "error\|exception\|fail"; then
+            echo "❌ JWT/Auth errors found in backend logs:"
+            echo "$BACKEND_LOGS" | grep -i "jwt\|token\|auth" | grep -i "error\|exception\|fail" | tail -5
+          else
+            echo "✅ No JWT/Auth errors found in backend logs"
+          fi
+          
 
         EOF
 
@@ -662,6 +686,22 @@ jobs:
         echo "Testing health endpoint..."
         HEALTH_RESPONSE=$(curl -f -s http://${{ steps.get-ip.outputs.instance_ip }}/health || echo "FAILED")
         echo "Health endpoint response: $HEALTH_RESPONSE"
+        
+        # Test authentication endpoint
+        echo "Testing authentication endpoint..."
+        AUTH_RESPONSE=$(curl -f -s -X POST "http://${{ steps.get-ip.outputs.instance_ip }}/api/auth/signin" \
+          -H "Content-Type: application/json" \
+          -d '{"username":"admin","password":"admin"}' || echo "FAILED")
+        echo "Auth endpoint response: $AUTH_RESPONSE"
+        
+        # Check if we got a JWT token
+        if echo "$AUTH_RESPONSE" | grep -q "token"; then
+          echo "✅ JWT token received from auth endpoint"
+          TOKEN=$(echo "$AUTH_RESPONSE" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+          echo "Token preview: ${TOKEN:0:20}..."
+        else
+          echo "❌ No JWT token received from auth endpoint"
+        fi
         
 
 
