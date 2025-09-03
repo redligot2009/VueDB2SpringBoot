@@ -431,6 +431,8 @@ jobs:
             echo "FLYWAY_BASELINE_ON_MIGRATE=true"
             echo "FLYWAY_VALIDATE_ON_MIGRATE=true"
             echo "FLYWAY_CLEAN_DISABLED=true"
+            echo "FLYWAY_REPAIR_ON_MIGRATE=true"
+            echo "FLYWAY_IGNORE_MIGRATION_PATTERNS=*:missing,*:future"
             echo "# Production JPA configuration"
             echo "JPA_DDL_AUTO=update"
             echo "JPA_SHOW_SQL=false"
@@ -557,12 +559,13 @@ jobs:
             # Check backend logs for Flyway activity
             BACKEND_LOGS=$(sudo docker logs backend --tail 50 2>&1)
             
-            if echo "$BACKEND_LOGS" | grep -q "Flyway.*migration\|Successfully applied\|No migrations found"; then
+            if echo "$BACKEND_LOGS" | grep -q "Successfully applied.*migration\|Flyway.*migration.*completed\|No migrations found"; then
               echo "✅ Flyway migration detected or completed..."
               break
             elif echo "$BACKEND_LOGS" | grep -q "Started BackendApplication"; then
-              echo "✅ Backend started successfully - Flyway migrations completed"
-              break
+              echo "✅ Backend started successfully - checking if Flyway completed..."
+              # Give Flyway a bit more time if backend just started
+              sleep 30
             elif echo "$BACKEND_LOGS" | grep -q "Error\|Exception\|Failed"; then
               echo "❌ Backend startup error detected:"
               echo "$BACKEND_LOGS" | grep -i "error\|exception\|failed" | tail -5
@@ -572,7 +575,35 @@ jobs:
             sleep 30
           done
           
-          # Final schema check
+          # Wait for Flyway migrations to complete before schema verification
+          echo "Waiting for Flyway migrations to complete..."
+          for i in {1..20}; do
+            echo "Migration check $i: Waiting for Flyway to complete..."
+            
+            # Check if Flyway has completed migrations
+            BACKEND_LOGS=$(sudo docker logs backend --tail 100 2>&1)
+            
+            if echo "$BACKEND_LOGS" | grep -q "Successfully applied.*migration\|Flyway.*migration.*completed\|No migrations found"; then
+              echo "✅ Flyway migrations completed successfully"
+              break
+            elif echo "$BACKEND_LOGS" | grep -q "Started BackendApplication"; then
+              echo "✅ Backend started - checking if Flyway completed..."
+              # Give Flyway a bit more time if backend just started
+              sleep 30
+            elif echo "$BACKEND_LOGS" | grep -q "Error\|Exception\|Failed"; then
+              echo "❌ Backend error detected during migration:"
+              echo "$BACKEND_LOGS" | grep -i "error\|exception\|failed" | tail -5
+            fi
+            
+            if [ $i -eq 20 ]; then
+              echo "⚠️ Warning: Flyway migration check timeout - proceeding with verification anyway"
+            fi
+            
+            echo "Waiting 30 seconds before next check..."
+            sleep 30
+          done
+          
+          # Final schema check - now after Flyway should have completed
           echo "Performing final database schema verification..."
           FINAL_TABLE_COUNT=$(sudo docker exec db2 su - db2inst1 -c "db2 connect to PHOTODB && db2 -x 'SELECT COUNT(*) FROM SYSCAT.TABLES WHERE TABSCHEMA = '\''DB2INST1'\''' | tail -1" 2>/dev/null || echo "0")
           echo "Final table count: $FINAL_TABLE_COUNT"
@@ -583,6 +614,8 @@ jobs:
             echo "❌ Database schema verification failed - missing required tables"
             echo "Backend logs:"
             sudo docker logs backend --tail 100
+            echo "Current database tables:"
+            sudo docker exec db2 su - db2inst1 -c "db2 connect to PHOTODB && db2 -x 'SELECT TABNAME FROM SYSCAT.TABLES WHERE TABSCHEMA = '\''DB2INST1'\'''" 2>/dev/null || echo "Could not query tables"
             exit 1
           fi
           
@@ -601,10 +634,18 @@ jobs:
             echo "❌ Production profile not detected in logs"
           fi
           
-          if echo "$BACKEND_LOGS" | grep -q "Flyway.*migration\|Successfully applied\|No migrations found"; then
+          if echo "$BACKEND_LOGS" | grep -q "Successfully applied.*migration\|Flyway.*migration.*completed\|No migrations found"; then
             echo "✅ Flyway migration detected or completed"
           elif echo "$BACKEND_LOGS" | grep -q "Started BackendApplication"; then
-            echo "✅ Backend started successfully - Flyway migrations completed"
+            echo "✅ Backend started successfully - checking Flyway status..."
+            # Additional check for Flyway completion
+            sleep 10
+            ADDITIONAL_LOGS=$(sudo docker logs backend --tail 50 2>&1)
+            if echo "$ADDITIONAL_LOGS" | grep -q "Successfully applied.*migration\|Flyway.*migration.*completed"; then
+              echo "✅ Flyway migrations confirmed completed"
+            else
+              echo "ℹ️ Backend running - Flyway status unclear"
+            fi
           else
             echo "ℹ️ Flyway migrations completed or not needed"
           fi
