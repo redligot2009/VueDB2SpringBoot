@@ -44,9 +44,9 @@ services:
       - FLYWAY_VALIDATE_ON_MIGRATE=true
       - FLYWAY_CLEAN_DISABLED=true
       # Production JPA configuration
-      - JPA_DDL_AUTO=validate
-      - JPA_SHOW_SQL=false
-      - JPA_FORMAT_SQL=false
+      - JPA_DDL_AUTO=${JPA_DDL_AUTO}
+      - JPA_SHOW_SQL=${JPA_SHOW_SQL}
+      - JPA_FORMAT_SQL=${JPA_FORMAT_SQL}
     restart: unless-stopped
     networks:
       - app-network
